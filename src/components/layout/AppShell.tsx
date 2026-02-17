@@ -1,6 +1,9 @@
 import Link from "next/link";
 import AuthHeader from "@/components/AuthHeader";
 import MiniCart from "@/components/MiniCart";
+import SearchBox from "@/components/search/SearchBox";
+import BottomNav from "@/components/layout/BottomNav";
+import PwaInstallPrompt from "@/components/PwaInstallPrompt";
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   return (
@@ -26,7 +29,21 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             </Link>
           </nav>
 
+          <div className="hidden lg:flex flex-1 justify-center px-6">
+            <SearchBox
+              variant="header"
+              placeholder="Search products..."
+              className="max-w-lg"
+            />
+          </div>
+
           <div className="flex items-center gap-3">
+            <Link
+              href="/search"
+              className="inline-flex h-9 items-center rounded-full border border-black/10 bg-white px-3 text-xs font-medium text-gray-700 transition hover:bg-gray-50 lg:hidden"
+            >
+              Search
+            </Link>
             <MiniCart />
             <AuthHeader />
           </div>
@@ -36,6 +53,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <main className="qb-main">
         <div className="qb-container">{children}</div>
       </main>
+
+      <PwaInstallPrompt />
+      <BottomNav />
     </div>
   );
 }

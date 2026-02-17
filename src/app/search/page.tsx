@@ -1,5 +1,8 @@
+import Image from "next/image";
 import Link from "next/link";
 import AppShell from "@/components/layout/AppShell";
+import SearchBox from "@/components/search/SearchBox";
+import SearchRecents from "@/components/search/SearchRecents";
 import { PageHeader } from "@/components/ui/page-header";
 import { getStoreProductsPage } from "@/lib/db/queries/product";
 
@@ -19,51 +22,76 @@ export default async function SearchPage({ searchParams }: Props) {
     pageSize: 24,
     q: q || undefined,
   });
+  const currency = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "NGN",
+  });
 
   return (
     <AppShell>
       <div className="qb-page">
         <PageHeader title="Search" subtitle="Find products by name or SKU." />
 
-        <form action="/search" method="GET" className="qb-card mb-4">
-          <div className="flex gap-2">
-            <input
-              name="q"
-              defaultValue={q}
-              placeholder="Type name or SKU..."
-              className="flex-1 rounded border border-black/15 px-3 py-2 text-sm"
-            />
-            <button
-              type="submit"
-              className="rounded border border-black/15 px-3 py-2 text-sm hover:bg-gray-50"
-            >
-              Search
-            </button>
-          </div>
-        </form>
+        <div className="qb-card">
+          <SearchBox
+            initialQuery={q}
+            placeholder="Search the full catalog..."
+            variant="page"
+            showRecent
+          />
+        </div>
+        <SearchRecents query={q} />
 
         {!q ? (
           <div className="qb-card text-sm text-gray-600">
-            Enter a search term to see results.
+            Enter a search term to see results. Recent searches appear as you
+            focus the input.
           </div>
         ) : rows.length === 0 ? (
           <div className="qb-card text-sm text-gray-600">
             No products found for "{q}".
           </div>
         ) : (
-          <div className="space-y-3">
-            {rows.map((r) => (
-              <Link
-                key={String(r.id)}
-                href={`/products/${r.slug}`}
-                className="block rounded border border-black/10 bg-white p-3 hover:bg-gray-50"
-              >
-                <div className="font-medium">{r.name_en}</div>
-                <div className="text-sm text-gray-600">
-                  ${Number(r.base_price ?? 0).toFixed(2)}
-                </div>
-              </Link>
-            ))}
+          <div className="space-y-4">
+            <div className="qb-card flex items-center justify-between text-sm">
+              <div className="text-gray-600">
+                Page {pagination.page} of {Math.max(1, pagination.totalPages)} |
+                Total {pagination.total}
+              </div>
+              <div className="text-gray-500">Results for "{q}"</div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {rows.map((r) => (
+                <Link
+                  key={String(r.id)}
+                  href={`/products/${r.slug}`}
+                  className="group block overflow-hidden rounded-2xl border border-black/10 bg-white transition hover:-translate-y-0.5 hover:shadow-lg"
+                >
+                  <div className="relative flex h-44 items-center justify-center bg-gray-100">
+                    {r.image_url ? (
+                      <Image
+                        src={String(r.image_url)}
+                        alt={r.name_en}
+                        fill
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                        className="object-cover transition duration-300 group-hover:scale-[1.03]"
+                      />
+                    ) : (
+                      <div className="text-gray-400">No image</div>
+                    )}
+                  </div>
+                  <div className="p-4">
+                    <div className="truncate text-base font-semibold text-gray-900">
+                      {r.name_en}
+                    </div>
+                    <div className="mt-2 text-sm text-gray-600">
+                      {currency.format(Number(r.base_price ?? 0))}
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
 
             <div className="qb-card mt-2 flex items-center justify-between text-sm">
               <div className="text-gray-600">

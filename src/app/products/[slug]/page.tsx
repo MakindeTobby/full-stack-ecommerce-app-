@@ -68,24 +68,32 @@ export default async function ProductPage({ params }: Props) {
     <AppShell>
       <div className="qb-page">
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-          <div className="qb-card">
-            {medias.length ? (
-              <img
-                id="main-product-image" // <-- added id
-                src={medias[0].url}
-                data-default-src={medias[0].url} // <-- store default
-                alt={product.name_en}
-                className="h-[420px] w-full rounded object-cover"
-              />
-            ) : (
-              <div className="flex h-[420px] w-full items-center justify-center bg-gray-100">
-                No image
+          <div>
+            <div className="qb-detail-card">
+              <div className="qb-detail-image-frame">
+                <div className="qb-detail-seal">Seal</div>
+                {medias.length ? (
+                  <img
+                    id="main-product-image"
+                    src={medias[0].url}
+                    data-default-src={medias[0].url}
+                    alt={product.name_en}
+                    className="qb-detail-image"
+                  />
+                ) : (
+                  <div className="flex h-[420px] w-full items-center justify-center bg-gray-100">
+                    No image
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </div>
 
-          <div className="qb-card">
-            <h1 className="text-2xl font-semibold">{product.name_en}</h1>
+          <div className="qb-detail-card">
+            <div className="qb-detail-kicker">
+              {product.sku ? `SKU ${product.sku}` : "Curated selection"}
+            </div>
+            <h1 className="qb-detail-title">{product.name_en}</h1>
             <ProductDescription text={product.description} />
 
             <ProductDetailClient

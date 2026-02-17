@@ -305,17 +305,15 @@ export default function ProductDetailClient({
 
   return (
     <div className="mt-4 space-y-4">
-      <div className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-800">
-        {presenceText}
-      </div>
+      <div className="qb-detail-presence">{presenceText}</div>
 
-      <div className="flex items-center gap-4">
-        <div className="text-xl font-semibold">
+      <div className="qb-detail-price-row">
+        <div className="qb-detail-price">
           {currency.format(finalDisplayPrice)}
         </div>
 
         {saved > 0 && (
-          <div className="text-sm text-green-600 font-medium">
+          <div className="qb-detail-saved">
             You saved {currency.format(saved)}
           </div>
         )}
@@ -329,21 +327,21 @@ export default function ProductDetailClient({
 
       {/* Thumbnails (client-only) */}
       {medias.length > 0 && (
-        <div className="flex gap-2">
+        <div className="qb-detail-thumbs">
           {medias.map((m, idx) => (
             <button
               key={m.id ?? `${idx}`}
               type="button"
               onClick={() => handleThumbClick(idx)}
               aria-pressed={activeThumb === idx}
-              className={`border rounded overflow-hidden p-0 ${
-                activeThumb === idx ? "ring-2 ring-indigo-500" : ""
+              className={`qb-detail-thumb ${
+                activeThumb === idx ? "qb-detail-thumb-active" : ""
               }`}
             >
               <img
                 src={m.url}
                 alt={`Thumbnail ${idx + 1}`}
-                className="w-20 h-20 object-cover"
+                className="h-20 w-20 object-cover"
               />
             </button>
           ))}
@@ -352,14 +350,14 @@ export default function ProductDetailClient({
 
       {groups.map((g) => (
         <div key={g.name}>
-          <div className="mb-1 block text-sm font-medium">{g.name}</div>
-          <div className="flex gap-2">
+          <div className="qb-detail-attr-label">{g.name}</div>
+          <div className="qb-detail-attr-grid">
             {g.values.map((val) => (
               <button
                 key={val}
                 onClick={() => setSelected((s) => ({ ...s, [g.name]: val }))}
-                className={`px-3 py-1 border rounded ${
-                  selected[g.name] === val ? "bg-black text-white" : ""
+                className={`qb-detail-attr ${
+                  selected[g.name] === val ? "qb-detail-attr-active" : ""
                 }`}
                 type="button"
               >
@@ -372,24 +370,24 @@ export default function ProductDetailClient({
 
       <div className="flex items-center gap-4">
         <div className="text-sm font-medium">Qty</div>
-        <div className="inline-flex items-center rounded-md border border-black/15 bg-white">
+        <div className="qb-detail-qty">
           <button
             type="button"
             onClick={() => setQty((v) => Math.max(1, v - 1))}
             disabled={loading || qty <= 1}
-            className="h-9 w-9 rounded-l-md text-lg disabled:opacity-40"
+            className="qb-detail-qty-btn"
             aria-label="Decrease quantity"
           >
             -
           </button>
-          <div className="flex h-9 min-w-10 items-center justify-center border-x border-black/10 px-3 text-sm font-medium">
+          <div className="qb-detail-qty-value">
             {qty}
           </div>
           <button
             type="button"
             onClick={() => setQty((v) => Math.min(maxAddableQty, v + 1))}
             disabled={loading || maxAddableQty === 0 || qty >= maxAddableQty}
-            className="h-9 w-9 rounded-r-md text-lg disabled:opacity-40"
+            className="qb-detail-qty-btn"
             aria-label="Increase quantity"
           >
             +
@@ -405,7 +403,7 @@ export default function ProductDetailClient({
           type="button"
           onClick={handleAddToCart}
           disabled={loading || stock === 0 || maxAddableQty <= 0}
-          className="px-4 py-2 bg-indigo-600 text-white rounded disabled:opacity-60"
+          className="qb-detail-cta"
         >
           {loading
             ? "Adding..."
@@ -415,7 +413,7 @@ export default function ProductDetailClient({
                 ? "Stock already in cart"
                 : "Add to cart"}
         </button>
-        <button type="button" className="px-4 py-2 border rounded">
+        <button type="button" className="qb-detail-secondary">
           Buy now
         </button>
       </div>

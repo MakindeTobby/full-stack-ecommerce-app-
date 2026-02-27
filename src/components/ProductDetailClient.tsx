@@ -144,9 +144,9 @@ export default function ProductDetailClient({
     finalDisplayPrice =
       flashType === "percent"
         ? Math.max(
-            0,
-            selectedBasePrice - selectedBasePrice * (flashValue / 100),
-          )
+          0,
+          selectedBasePrice - selectedBasePrice * (flashValue / 100),
+        )
         : Math.max(0, selectedBasePrice - flashValue);
   } else if (activeFlash && Number.isFinite(serverPrice)) {
     finalDisplayPrice = serverPrice;
@@ -334,9 +334,8 @@ export default function ProductDetailClient({
               type="button"
               onClick={() => handleThumbClick(idx)}
               aria-pressed={activeThumb === idx}
-              className={`qb-detail-thumb ${
-                activeThumb === idx ? "qb-detail-thumb-active" : ""
-              }`}
+              className={`qb-detail-thumb ${activeThumb === idx ? "qb-detail-thumb-active" : ""
+                }`}
             >
               <img
                 src={m.url}
@@ -356,9 +355,8 @@ export default function ProductDetailClient({
               <button
                 key={val}
                 onClick={() => setSelected((s) => ({ ...s, [g.name]: val }))}
-                className={`qb-detail-attr ${
-                  selected[g.name] === val ? "qb-detail-attr-active" : ""
-                }`}
+                className={`qb-detail-attr ${selected[g.name] === val ? "qb-detail-attr-active" : ""
+                  }`}
                 type="button"
               >
                 {val}

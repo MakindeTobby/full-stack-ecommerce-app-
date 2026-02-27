@@ -1,10 +1,9 @@
 // app/products/page.tsx
 
-import Image from "next/image";
 import Link from "next/link";
-import FlashCountdown from "@/components/FlashCountdown";
 import AppShell from "@/components/layout/AppShell";
-import { PageHeader } from "@/components/ui/page-header";
+import MobileFiltersDrawer from "@/components/shop/MobileFiltersDrawer";
+import ProductCard from "@/components/shop/ProductCard";
 import {
   getStoreCategoriesWithCounts,
   getStoreProductsPage,
@@ -22,17 +21,21 @@ export default async function ProductsPage({ searchParams }: Props) {
   const minPriceRaw = Array.isArray(sp.minPrice) ? sp.minPrice[0] : sp.minPrice;
   const maxPriceRaw = Array.isArray(sp.maxPrice) ? sp.maxPrice[0] : sp.maxPrice;
   const pageRaw = Array.isArray(sp.page) ? sp.page[0] : sp.page;
+
   const category = (categoryRaw ?? "").trim() || undefined;
   const q = (qRaw ?? "").trim() || undefined;
   const minPriceInput = (minPriceRaw ?? "").trim();
   const maxPriceInput = (maxPriceRaw ?? "").trim();
+
   const minPrice = minPriceInput === "" ? Number.NaN : Number(minPriceInput);
   const maxPrice = maxPriceInput === "" ? Number.NaN : Number(maxPriceInput);
   const minPriceValue =
     Number.isFinite(minPrice) && minPrice >= 0 ? minPrice : undefined;
   const maxPriceValue =
     Number.isFinite(maxPrice) && maxPrice >= 0 ? maxPrice : undefined;
+
   const page = Math.max(1, Number(pageRaw ?? "1") || 1);
+
   const [{ rows, pagination, selectedCategory }, categories] =
     await Promise.all([
       getStoreProductsPage({
@@ -45,6 +48,7 @@ export default async function ProductsPage({ searchParams }: Props) {
       }),
       getStoreCategoriesWithCounts(),
     ]);
+
   const buildHref = (nextPage: number, nextCategory?: string) =>
     `/products?${new URLSearchParams({
       page: String(nextPage),
@@ -63,14 +67,17 @@ export default async function ProductsPage({ searchParams }: Props) {
   }) => {
     const params = new URLSearchParams();
     params.set("page", String(opts.page ?? page));
+
     const nextCategory = opts.category ?? category;
     const nextQuery = opts.q ?? q;
     const nextMin = opts.minPrice ?? minPriceInput;
     const nextMax = opts.maxPrice ?? maxPriceInput;
+
     if (nextCategory) params.set("category", nextCategory);
     if (nextQuery) params.set("q", nextQuery);
     if (nextMin) params.set("minPrice", nextMin);
     if (nextMax) params.set("maxPrice", nextMax);
+
     return `/products?${params.toString()}`;
   };
 
@@ -84,88 +91,92 @@ export default async function ProductsPage({ searchParams }: Props) {
     productIds,
     basePriceMap,
   );
-  const currency = new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "NGN",
-  });
 
   const hasFilters =
     !!selectedCategory ||
     !!q ||
     minPriceInput.trim().length > 0 ||
     maxPriceInput.trim().length > 0;
+  const selectedCategorySlug =
+    selectedCategory && typeof selectedCategory === "object"
+      ? String((selectedCategory as { slug?: unknown }).slug ?? "")
+      : undefined;
+
+  const totalCategoryItems = categories.reduce(
+    (acc, c) => acc + Number(c.product_count ?? 0),
+    0,
+  );
 
   return (
     <AppShell>
-      <div className="qb-page">
-        <PageHeader
-          title="Shop"
-          subtitle="Explore curated products and live promotions."
-        />
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 my-4" >
+        <section className="rounded-xl my-4 border border-black/10 bg-gradient-to-b from-white to-slate-50 p-5 md:p-6">
+          <div className="flex flex-wrap  items-center justify-between gap-3">
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-violet-600">
+                Shop
+              </p>
+              <h1 className="font-display mt-1 text-3xl text-slate-900 md:text-4xl">
+                Curated Collection
+              </h1>
+              <p className="mt-2 text-sm text-slate-600">
+                {q ? `Searching "${q}" in ` : ""}
+                {selectedCategory?.name ?? "All categories"}.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 rounded-full border border-black/10 bg-white px-3 py-2 text-xs text-slate-600">
+              <span className="inline-block h-2 w-2 rounded-full bg-violet-500" />
+              {pagination.total} products
+            </div>
+          </div>
+        </section>
 
-        <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
-          <aside className="space-y-4">
+        <div className="grid gap-6 lg:grid-cols-[300px_1fr]">
+          <aside className="hidden space-y-4 lg:block">
             <form
               action="/products"
               method="GET"
-              className="qb-filter-panel space-y-5 lg:sticky lg:top-24"
+              className="space-y-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm lg:sticky lg:top-24"
             >
-              <div className="qb-filter-header">
-                <div>
-                  <div className="qb-filter-kicker">Curated</div>
-                  <div className="qb-filter-title">Refine the shop</div>
-                </div>
-                <span className="qb-filter-badge">Premium</span>
-              </div>
               <input
                 type="hidden"
                 name="category"
                 value={selectedCategory?.slug ?? ""}
               />
+
               <div>
-                <div className="qb-filter-section-title">
+                <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.25em] text-slate-500">
                   Search
-                </div>
+                </p>
                 <input
                   name="q"
                   defaultValue={q ?? ""}
-                  placeholder="Product name or SKU"
-                  className="qb-filter-input mt-2 w-full"
+                  placeholder="Search products..."
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20"
                 />
               </div>
 
               <div>
-                <div className="qb-filter-section-title">
+                <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.25em] text-slate-500">
                   Price range
-                </div>
-                <div className="mt-2 grid grid-cols-2 gap-2">
+                </p>
+                <div className="grid grid-cols-2 gap-2">
                   <input
                     name="minPrice"
                     defaultValue={minPriceInput}
                     inputMode="decimal"
                     placeholder="Min"
-                    className="qb-filter-input"
+                    className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20"
                   />
                   <input
                     name="maxPrice"
                     defaultValue={maxPriceInput}
                     inputMode="decimal"
                     placeholder="Max"
-                    className="qb-filter-input"
+                    className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20"
                   />
                 </div>
-                <div className="mt-2 flex flex-wrap gap-2 text-xs">
-                  <Link
-                    href={buildFilterHref({
-                      page: 1,
-                      category: category ?? undefined,
-                      minPrice: "",
-                      maxPrice: "",
-                    })}
-                    className="qb-filter-chip"
-                  >
-                    Reset price
-                  </Link>
+                <div className="mt-2 flex flex-wrap gap-2">
                   <Link
                     href={buildFilterHref({
                       page: 1,
@@ -173,7 +184,7 @@ export default async function ProductsPage({ searchParams }: Props) {
                       minPrice: "",
                       maxPrice: "10000",
                     })}
-                    className="qb-filter-chip"
+                    className="rounded-full border border-slate-200 px-3 py-1 text-xs text-slate-600 transition hover:border-violet-300 hover:text-violet-700"
                   >
                     Under 10k
                   </Link>
@@ -184,65 +195,65 @@ export default async function ProductsPage({ searchParams }: Props) {
                       minPrice: "10000",
                       maxPrice: "30000",
                     })}
-                    className="qb-filter-chip"
+                    className="rounded-full border border-slate-200 px-3 py-1 text-xs text-slate-600 transition hover:border-violet-300 hover:text-violet-700"
                   >
                     10k - 30k
+                  </Link>
+                  <Link
+                    href={buildFilterHref({
+                      page: 1,
+                      category: category ?? undefined,
+                      minPrice: "30000",
+                      maxPrice: "100000",
+                    })}
+                    className="rounded-full border border-slate-200 px-3 py-1 text-xs text-slate-600 transition hover:border-violet-300 hover:text-violet-700"
+                  >
+                    30k - 100k
                   </Link>
                 </div>
               </div>
 
               <div>
-                <div className="qb-filter-section-title">
+                <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.25em] text-slate-500">
                   Categories
-                </div>
-                <div className="mt-2 space-y-2">
+                </p>
+                <div className="space-y-1">
                   <Link
                     href={buildHref(1)}
-                    className={`qb-filter-row ${
-                      !selectedCategory
-                        ? "qb-filter-row-active"
-                        : "qb-filter-row-idle"
-                    }`}
+                    className={`flex items-center justify-between rounded-lg px-3 py-2 text-sm transition ${!selectedCategory
+                      ? "bg-violet-600 font-medium text-white"
+                      : "text-slate-700 hover:bg-slate-50"
+                      }`}
                   >
-                    <span>All</span>
-                    <span className="text-xs">
-                      {Number(
-                        categories.reduce(
-                          (acc, c) => acc + Number(c.product_count ?? 0),
-                          0,
-                        ),
-                      )}
-                    </span>
+                    <span>All Products</span>
+                    <span>{totalCategoryItems}</span>
                   </Link>
                   {categories.map((c) => (
                     <Link
                       key={c.id}
                       href={buildHref(1, c.slug)}
-                      className={`qb-filter-row ${
-                        selectedCategory?.slug === c.slug
-                          ? "qb-filter-row-active"
-                          : "qb-filter-row-idle"
-                      }`}
+                      className={`flex items-center justify-between rounded-lg px-3 py-2 text-sm transition ${selectedCategory?.slug === c.slug
+                        ? "bg-violet-600 font-medium text-white"
+                        : "text-slate-700 hover:bg-slate-50"
+                        }`}
                     >
                       <span>{c.name}</span>
-                      <span className="text-xs">
-                        {Number(c.product_count ?? 0)}
-                      </span>
+                      <span>{Number(c.product_count ?? 0)}</span>
                     </Link>
                   ))}
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex gap-2">
                 <button
                   type="submit"
-                  className="qb-filter-cta flex-1"
+                  className="flex-1 rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-violet-700"
                 >
-                  Apply filters
+                  Apply
                 </button>
                 <Link
                   href="/products"
-                  className="qb-filter-clear"
+                  className="rounded-lg border border-slate-200 px-4 py-2 text-sm text-slate-600 transition hover:bg-slate-50"
                 >
                   Clear
                 </Link>
@@ -251,28 +262,64 @@ export default async function ProductsPage({ searchParams }: Props) {
           </aside>
 
           <section className="space-y-4">
-            <div className="qb-card flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <div className="text-sm font-medium text-gray-900">
-                  {selectedCategory?.name ?? "All products"}
+            <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="text-sm text-slate-600">
+                  Showing{" "}
+                  <span className="font-semibold text-slate-900">
+                    {rows.length}
+                  </span>{" "}
+                  of{" "}
+                  <span className="font-semibold text-slate-900">
+                    {pagination.total}
+                  </span>{" "}
+                  results
                 </div>
-                <div className="text-xs text-gray-500">
-                  {q ? `Results for "${q}" · ` : ""}
-                  {pagination.total} items
-                </div>
+                {hasFilters ? (
+                  <div className="flex items-center gap-2">
+                    <MobileFiltersDrawer
+                      page={page}
+                      category={category}
+                      q={q}
+                      minPriceInput={minPriceInput}
+                      maxPriceInput={maxPriceInput}
+                      selectedCategorySlug={selectedCategorySlug}
+                      categories={categories.map((c) => ({
+                        id: String(c.id),
+                        name: String(c.name),
+                        slug: String(c.slug),
+                        product_count: Number(c.product_count ?? 0),
+                      }))}
+                    />
+                    <Link
+                      href="/products"
+                      className="rounded-full border border-slate-200 px-3 py-1 text-xs text-slate-600 transition hover:border-violet-300 hover:text-violet-700"
+                    >
+                      Clear all filters
+                    </Link>
+                  </div>
+                ) : null}
+                {!hasFilters ? (
+                  <MobileFiltersDrawer
+                    page={page}
+                    category={category}
+                    q={q}
+                    minPriceInput={minPriceInput}
+                    maxPriceInput={maxPriceInput}
+                    selectedCategorySlug={selectedCategorySlug}
+                    categories={categories.map((c) => ({
+                      id: String(c.id),
+                      name: String(c.name),
+                      slug: String(c.slug),
+                      product_count: Number(c.product_count ?? 0),
+                    }))}
+                  />
+                ) : null}
               </div>
-              {hasFilters ? (
-                <Link
-                  href="/products"
-                  className="rounded-full border border-black/10 px-3 py-1 text-xs text-gray-600 hover:bg-gray-50"
-                >
-                  Clear all filters
-                </Link>
-              ) : null}
             </div>
 
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
-              {rows.map((r) => {
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-3" id="productGrid">
+              {rows.map((r, idx) => {
                 const pid = String(r.id);
                 const fm = flashMap[pid] ?? {
                   price: Number(r.base_price ?? 0),
@@ -281,90 +328,72 @@ export default async function ProductsPage({ searchParams }: Props) {
                 const displayPrice = Number(fm.price ?? r.base_price ?? 0);
                 const basePrice = Number(r.base_price ?? 0);
                 const activeFlash = fm.activeFlash;
+                const delayCls =
+                  idx === 0
+                    ? ""
+                    : idx === 1
+                      ? "delay-1"
+                      : idx === 2
+                        ? "delay-2"
+                        : idx === 3
+                          ? "delay-3"
+                          : idx === 4
+                            ? "delay-4"
+                            : idx === 5
+                              ? "delay-5"
+                              : idx === 6
+                                ? "delay-6"
+                                : idx === 7
+                                  ? "delay-7"
+                                  : idx === 8
+                                    ? "delay-8"
+                                    : idx === 9
+                                      ? "delay-9"
+                                      : idx === 10
+                                        ? "delay-10"
+                                        : idx === 11
+                                          ? "delay-11"
+                                          : "delay-12";
+
 
                 return (
-                  <Link
+                  <ProductCard
                     key={pid}
-                    href={`/products/${r.slug}`}
-                    className="qb-product-card group"
-                  >
-                    <div className="qb-product-frame">
-                      <div className="qb-product-seal">
-                        <span>Seal</span>
-                      </div>
-                      {activeFlash && (
-                        <div className="qb-product-ribbon">Flash</div>
-                      )}
-                      <div className="qb-product-image">
-                        {r.image_url ? (
-                          <Image
-                            src={String(r.image_url)}
-                            alt={r.name_en}
-                            fill
-                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                            className="object-cover transition duration-300 group-hover:scale-[1.04]"
-                          />
-                        ) : (
-                          <div className="text-gray-400">No image</div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="qb-product-body">
-                      <div className="qb-product-ink">
-                        {r.category_name ?? "Collection"}
-                      </div>
-                      <div className="qb-product-title">{r.name_en}</div>
-
-                      <div className="qb-product-price-row">
-                        <div
-                          className={`qb-product-price ${
-                            activeFlash ? "qb-product-price-sale" : ""
-                          }`}
-                        >
-                          {currency.format(displayPrice)}
-                        </div>
-                        {activeFlash && (
-                          <div className="qb-product-price-old">
-                            {currency.format(basePrice)}
-                          </div>
-                        )}
-                      </div>
-
-                      {activeFlash?.ends_at && (
-                        <div className="mt-3">
-                          <FlashCountdown endsAt={activeFlash.ends_at} />
-                        </div>
-                      )}
-                    </div>
-                  </Link>
+                    id={pid}
+                    slug={r.slug}
+                    name={r.name_en}
+                    categoryName={r.category_name}
+                    imageUrl={r.image_url ? String(r.image_url) : null}
+                    price={displayPrice}
+                    compareAtPrice={activeFlash ? basePrice : null}
+                    flashEndsAt={activeFlash?.ends_at ?? null}
+                    isFlash={Boolean(activeFlash)}
+                    className={`fade-up ${delayCls}`}
+                  />
                 );
               })}
             </div>
 
-            <div className="qb-card flex items-center justify-between text-sm">
-              <div className="text-gray-600">
-                Page {pagination.page} of {Math.max(1, pagination.totalPages)} |
-                Total {pagination.total}
-              </div>
+            <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm">
+              <p className="text-slate-600">
+                Page {pagination.page} of {Math.max(1, pagination.totalPages)}
+              </p>
               <div className="flex items-center gap-2">
                 <Link
                   href={buildHref(Math.max(1, pagination.page - 1), category)}
-                  className={`rounded border px-3 py-2 ${
-                    pagination.hasPrev
-                      ? "border-black/20 hover:bg-gray-50"
-                      : "pointer-events-none border-black/10 text-gray-400"
-                  }`}
+                  className={`rounded-lg border px-3 py-2 ${pagination.hasPrev
+                    ? "border-slate-200 text-slate-700 hover:bg-slate-50"
+                    : "pointer-events-none border-slate-100 text-slate-400"
+                    }`}
                 >
                   Previous
                 </Link>
                 <Link
                   href={buildHref(pagination.page + 1, category)}
-                  className={`rounded border px-3 py-2 ${
-                    pagination.hasNext
-                      ? "border-black/20 hover:bg-gray-50"
-                      : "pointer-events-none border-black/10 text-gray-400"
-                  }`}
+                  className={`rounded-lg border px-3 py-2 ${pagination.hasNext
+                    ? "border-slate-200 text-slate-700 hover:bg-slate-50"
+                    : "pointer-events-none border-slate-100 text-slate-400"
+                    }`}
                 >
                   Next
                 </Link>

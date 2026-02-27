@@ -42,6 +42,27 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <NextAuthSessionProvider>
+          <div className="overflow-hidden bg-slate-900 py-1.5" id="annBar">
+            <div className="ticker flex gap-14 whitespace-nowrap">
+              {[
+                "Free delivery on orders above ₦15,000",
+                "New arrivals every Friday",
+                "Flash sales — limited stock",
+                "Authentic products only",
+                "Pay on delivery available",
+                "Free delivery on orders above ₦15,000",
+                "New arrivals every Friday",
+                "Flash sales — limited stock",
+                "Authentic products only",
+                "Pay on delivery available",
+              ].map((t, idx) => (
+                <span key={idx} className="text-[11px] text-slate-400">
+                  <span className="mr-2 text-violet-400">✦</span>
+                  {t}
+                </span>
+              ))}
+            </div>
+          </div>
           <Toaster position="top-center" reverseOrder={false} />
           <PromoOrchestrator />
           <PwaRegister />

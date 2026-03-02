@@ -52,6 +52,26 @@ export default async function Home() {
           <Hero />
         </div>
 
+        <div className="mx-auto max-w-7xl px-4 sm:px-6">
+          <section className="my-4 rounded-2xl border border-slate-200 bg-gradient-to-r from-slate-900 to-slate-700 p-5 text-white md:p-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-300">New Niche Experience</p>
+            <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="text-2xl font-semibold">Men Corporate Shoes Store</h2>
+                <p className="mt-1 text-sm text-slate-200">
+                  Explore formal shoes only, with a focused buying experience.
+                </p>
+              </div>
+              <Link
+                href="/corporate-shoes"
+                className="inline-flex rounded-lg bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-100"
+              >
+                Enter Corporate Shoes
+              </Link>
+            </div>
+          </section>
+        </div>
+
         {/* CATEGORIES */}
         <div className="mx-auto max-w-7xl px-4 sm:px-6" >
 
@@ -93,3 +113,4 @@ export default async function Home() {
     </AppShell>
   );
 }
+

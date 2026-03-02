@@ -1,1 +1,0 @@
-ALTER TABLE "product_media" ADD COLUMN "public_id" varchar(255);

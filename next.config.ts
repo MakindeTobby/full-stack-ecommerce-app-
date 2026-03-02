@@ -8,7 +8,7 @@ const nextConfig = {
         hostname: "res.cloudinary.com",
         port: "",
         // change 'dh46btxll' to your Cloudinary cloud name
-      pathname: "/**",
+        pathname: "/**",
       },
       // Unsplash (images served from images.unsplash.com)
       {
@@ -22,9 +22,15 @@ const nextConfig = {
         hostname: "picsum.photos",
         port: "",
         pathname: "/**",
-      },  {
+      }, {
         protocol: "https",
         hostname: "fastly.picsum.photos",
+        port: "",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "source.unsplash.com",
         port: "",
         pathname: "/**",
       },

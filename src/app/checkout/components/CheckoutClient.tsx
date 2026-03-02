@@ -1,4 +1,5 @@
 "use client";
+
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import toast from "react-hot-toast";
@@ -19,6 +20,8 @@ type CartItem = {
   sku?: string | null;
   quantity: number;
   unit_price: string;
+  addons?: Array<{ code: string; label?: string }>;
+  addons_total?: string;
   thumbnail?: string | null;
 };
 
@@ -32,6 +35,12 @@ export default function CheckoutClient({
   userId: string;
 }) {
   const router = useRouter();
+  const money = new Intl.NumberFormat("en-NG", {
+    style: "currency",
+    currency: "NGN",
+    maximumFractionDigits: 2,
+  });
+
   const [addresses, setAddresses] = useState(initialAddresses ?? []);
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(
     addresses?.[0]?.id ?? null,
@@ -48,7 +57,9 @@ export default function CheckoutClient({
     country: "",
   });
 
-  const [paymentMethod, setPaymentMethod] = useState<"cod" | "paystack">("cod");
+  const [paymentMethod, setPaymentMethod] = useState<"cod" | "paystack">(
+    "cod",
+  );
   const [loading, setLoading] = useState(false);
   const cart = initialCart;
 
@@ -177,11 +188,16 @@ export default function CheckoutClient({
 
   return (
     <div className="space-y-6">
-      <Card>
-        <h2 className="mb-3 font-medium">Shipping address</h2>
+      <Card className="rounded-2xl border-slate-200 p-5">
+        <h2 className="mb-1 text-base font-semibold text-slate-900">
+          Shipping Address
+        </h2>
+        <p className="mb-3 text-xs text-slate-500">
+          Choose a saved address or add a new one.
+        </p>
 
         {addresses.length === 0 && !addingAddress && (
-          <div className="mb-3 text-sm text-gray-500">
+          <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
             No saved addresses. Add one now.
           </div>
         )}
@@ -190,10 +206,10 @@ export default function CheckoutClient({
           {addresses.map((a) => (
             <label
               key={a.id}
-              className={`block cursor-pointer rounded border p-3 ${
+              className={`block cursor-pointer rounded-lg border p-3 transition ${
                 selectedAddressId === String(a.id)
-                  ? "border-indigo-200 bg-indigo-50"
-                  : ""
+                  ? "border-violet-300 bg-violet-50"
+                  : "border-slate-200 bg-white hover:border-slate-300"
               }`}
             >
               <input
@@ -203,19 +219,19 @@ export default function CheckoutClient({
                 onChange={() => setSelectedAddressId(String(a.id))}
                 className="mr-2"
               />
-              <span className="block font-medium">
+              <span className="block font-medium text-slate-900">
                 {a.label} - {a.full_name}
               </span>
-              <span className="block text-sm text-gray-600">
+              <span className="block text-sm text-slate-600">
                 {a.street} | {a.city} | {a.country}
               </span>
-              <div className="mt-1 text-xs text-gray-500">Phone: {a.phone}</div>
+              <div className="mt-1 text-xs text-slate-500">Phone: {a.phone}</div>
             </label>
           ))}
         </div>
 
         {addingAddress ? (
-          <div className="mt-3 space-y-2">
+          <div className="mt-3 space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-3">
             <Input
               placeholder="Full name"
               value={addrForm.full_name}
@@ -286,10 +302,19 @@ export default function CheckoutClient({
         )}
       </Card>
 
-      <Card>
-        <h2 className="mb-3 font-medium">Payment method</h2>
+      <Card className="rounded-2xl border-slate-200 p-5">
+        <h2 className="mb-1 text-base font-semibold text-slate-900">Payment Method</h2>
+        <p className="mb-3 text-xs text-slate-500">
+          Select how you want to pay for this order.
+        </p>
         <div className="space-y-2">
-          <label className="flex items-center gap-3">
+          <label
+            className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition ${
+              paymentMethod === "cod"
+                ? "border-violet-300 bg-violet-50"
+                : "border-slate-200 hover:border-slate-300"
+            }`}
+          >
             <input
               type="radio"
               name="payment"
@@ -297,14 +322,20 @@ export default function CheckoutClient({
               onChange={() => setPaymentMethod("cod")}
             />
             <div>
-              <div className="font-medium">Cash on Delivery</div>
-              <div className="text-sm text-gray-500">
+              <div className="font-medium text-slate-900">Cash on Delivery</div>
+              <div className="text-sm text-slate-500">
                 Pay when the order is delivered
               </div>
             </div>
           </label>
 
-          <label className="flex items-center gap-3">
+          <label
+            className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition ${
+              paymentMethod === "paystack"
+                ? "border-violet-300 bg-violet-50"
+                : "border-slate-200 hover:border-slate-300"
+            }`}
+          >
             <input
               type="radio"
               name="payment"
@@ -312,8 +343,8 @@ export default function CheckoutClient({
               onChange={() => setPaymentMethod("paystack")}
             />
             <div>
-              <div className="font-medium">Pay with card (Paystack)</div>
-              <div className="text-sm text-gray-500">
+              <div className="font-medium text-slate-900">Pay with card (Paystack)</div>
+              <div className="text-sm text-slate-500">
                 Secure online payment (card / bank / transfer)
               </div>
             </div>
@@ -321,12 +352,18 @@ export default function CheckoutClient({
         </div>
       </Card>
 
-      <Card>
-        <h2 className="mb-3 font-medium">Items</h2>
+      <Card className="rounded-2xl border-slate-200 p-5">
+        <h2 className="mb-1 text-base font-semibold text-slate-900">Items</h2>
+        <p className="mb-3 text-xs text-slate-500">
+          Final review before placing your order.
+        </p>
         <div className="space-y-3">
           {cart.items.map((it: CartItem) => (
-            <div key={it.id} className="flex items-center gap-4 border-b pb-3">
-              <div className="h-16 w-16 overflow-hidden rounded bg-gray-100">
+            <div
+              key={it.id}
+              className="flex items-center gap-4 rounded-lg border border-slate-200 bg-white p-3"
+            >
+              <div className="h-16 w-16 overflow-hidden rounded border border-slate-200 bg-slate-100">
                 {it.thumbnail ? (
                   <img
                     src={it.thumbnail}
@@ -334,17 +371,30 @@ export default function CheckoutClient({
                     className="h-full w-full object-cover"
                   />
                 ) : (
-                  <div className="flex h-full w-full items-center justify-center text-xs text-gray-400">
+                  <div className="flex h-full w-full items-center justify-center text-xs text-slate-400">
                     No image
                   </div>
                 )}
               </div>
               <div className="flex-1">
-                <div className="font-medium">{it.name_snapshot ?? it.sku}</div>
-                <div className="text-sm text-gray-600">Qty: {it.quantity}</div>
+                <div className="font-medium text-slate-900">{it.name_snapshot ?? it.sku}</div>
+                <div className="text-sm text-slate-600">Qty: {it.quantity}</div>
+                {Array.isArray(it.addons) && it.addons.length > 0 ? (
+                  <div className="text-xs text-slate-500">
+                    Add-ons:{" "}
+                    {it.addons
+                      .map((a: { code: string; label?: string }) => a.label ?? a.code)
+                      .join(", ")}
+                  </div>
+                ) : null}
               </div>
-              <div className="text-right font-semibold">
-                ${(Number(it.unit_price) * it.quantity).toFixed(2)}
+              <div className="text-right font-semibold text-slate-900">
+                {money.format(Number(it.unit_price) * it.quantity)}
+                {Number(it.addons_total ?? 0) > 0 ? (
+                  <div className="text-xs font-normal text-slate-500">
+                    Add-ons: {money.format(Number(it.addons_total) * Number(it.quantity))}
+                  </div>
+                ) : null}
               </div>
             </div>
           ))}
@@ -353,7 +403,7 @@ export default function CheckoutClient({
         <div className="mt-4 flex items-center justify-between">
           <Button
             onClick={() => {
-              window.location.href = "/cart";
+              router.push("/cart");
             }}
             variant="secondary"
           >
@@ -361,8 +411,10 @@ export default function CheckoutClient({
           </Button>
 
           <div className="text-right">
-            <div className="text-sm">Items: {cart.itemCount}</div>
-            <div className="text-xl font-semibold">Total: ${cart.subTotal}</div>
+            <div className="text-sm text-slate-500">Items: {cart.itemCount}</div>
+            <div className="text-xl font-semibold text-slate-900">
+              Total: {money.format(Number(cart.subTotal ?? 0))}
+            </div>
             <div className="mt-2">
               <Button onClick={placeOrder} disabled={loading} variant="primary">
                 {loading

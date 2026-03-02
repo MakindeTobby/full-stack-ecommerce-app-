@@ -23,6 +23,7 @@ export async function POST(req: Request) {
     const rawCartId = input.cartId ?? null;
     const rawProductId = input.productId;
     const rawVariantId = input.variantId ?? null;
+    const addons = input.addons ?? [];
     const quantity = Number(input.quantity);
 
     const userIdNormalized = normalizeId(rawUserId);
@@ -66,6 +67,7 @@ export async function POST(req: Request) {
     const result = await addItemToCart(finalCartId, {
       productId: productIdNormalized,
       variantId: variantIdNormalized,
+      addons,
       quantity,
     });
     const rows = await db

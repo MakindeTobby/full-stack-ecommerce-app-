@@ -2,6 +2,7 @@ import { and, eq, sql } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 import { cart_items, carts, product_variants, products } from "@/db/schema";
 import { db } from "@/db/server";
+import { buildAddonPricing } from "@/lib/pricing/addons";
 import { resolveFlashPrice } from "@/lib/pricing/resolveFlashPrice";
 
 export async function mergeGuestCartToUser(opts: {
@@ -73,7 +74,7 @@ export async function mergeGuestCartToUser(opts: {
 
     const userItemMap = new Map<string, (typeof userItems)[number]>();
     for (const ui of userItems) {
-      const key = `${ui.product_id}::${String(ui.variant_id ?? "null")}`;
+      const key = `${ui.product_id}::${String(ui.variant_id ?? "null")}::${String(ui.addons_signature ?? "")}`;
       userItemMap.set(key, ui);
     }
 
@@ -86,7 +87,7 @@ export async function mergeGuestCartToUser(opts: {
     let mergedCount = 0;
 
     for (const gi of guestItems) {
-      const key = `${gi.product_id}::${String(gi.variant_id ?? "null")}`;
+      const key = `${gi.product_id}::${String(gi.variant_id ?? "null")}::${String(gi.addons_signature ?? "")}`;
       const qtyToMove = gi.quantity;
 
       if (userItemMap.has(key)) {
@@ -147,6 +148,9 @@ export async function mergeGuestCartToUser(opts: {
             sku: gi.sku ?? null,
             quantity: insertQty,
             unit_price: gi.unit_price,
+            addons_json: gi.addons_json ?? [],
+            addons_signature: gi.addons_signature ?? "",
+            addons_total: gi.addons_total ?? "0",
           });
           mergedCount++;
         }
@@ -204,10 +208,16 @@ export async function createOrGetCartForUser(opts: {
 
 export async function addItemToCart(
   cartId: string,
-  payload: { productId: string; variantId?: string | null; quantity: number },
+  payload: {
+    productId: string;
+    variantId?: string | null;
+    addons?: string[];
+    quantity: number;
+  },
 ) {
-  const { productId, variantId = null, quantity } = payload;
+  const { productId, variantId = null, addons = [], quantity } = payload;
   if (quantity <= 0) throw new Error("Quantity must be > 0");
+  const addonPricing = buildAddonPricing(addons);
 
   const productRow = (
     await db
@@ -247,7 +257,8 @@ export async function addItemToCart(
     productId,
     baseUnitPrice,
   );
-  unitPriceStr = Number(effectiveUnitPrice).toFixed(2);
+  const finalUnitPrice = Number(effectiveUnitPrice) + addonPricing.addonTotal;
+  unitPriceStr = Number(finalUnitPrice).toFixed(2);
 
   const existing =
     (
@@ -261,6 +272,7 @@ export async function addItemToCart(
             variantId
               ? eq(cart_items.variant_id, variantId)
               : sql`cart_items.variant_id IS NULL`,
+            eq(cart_items.addons_signature, addonPricing.addonSignature),
           ),
         )
         .limit(1)
@@ -273,6 +285,9 @@ export async function addItemToCart(
       .set({
         quantity: newQty,
         unit_price: unitPriceStr,
+        addons_json: addonPricing.addonCodes,
+        addons_signature: addonPricing.addonSignature,
+        addons_total: Number(addonPricing.addonTotal).toFixed(2),
       })
       .where(eq(cart_items.id, existing.id));
 
@@ -295,6 +310,9 @@ export async function addItemToCart(
     sku,
     quantity,
     unit_price: unitPriceStr,
+    addons_json: addonPricing.addonCodes,
+    addons_signature: addonPricing.addonSignature,
+    addons_total: Number(addonPricing.addonTotal).toFixed(2),
   });
 
   return (

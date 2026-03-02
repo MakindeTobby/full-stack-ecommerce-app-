@@ -13,20 +13,18 @@ import { PageHeader } from "@/components/ui/page-header";
 export default async function CheckoutPage() {
   const session: Session | null = await getServerSession(authOptions as any);
   if (!session?.user?.id) {
-    // require sign-in for checkout
-    // you can render a nicer call-to-action here
     return (
       <AppShell>
-        <div className="qb-page">
-          <PageHeader title="Checkout" />
-          <div className="qb-card bg-yellow-50">
-            <p className="mb-3">
-              You must be signed in to place an order.{" "}
-              <a className="text-blue-600" href="/signin">
+        <div className="mx-auto max-w-7xl space-y-4 px-4 py-5 sm:px-6 sm:py-6">
+          <section className="rounded-xl border border-slate-200 bg-gradient-to-b from-white to-slate-50 p-5 md:p-6">
+            <PageHeader title="Checkout" subtitle="Secure your order and complete payment." />
+          </section>
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+            You must be signed in to place an order.{" "}
+            <a className="font-semibold text-amber-900 underline" href="/signin">
                 Sign in
-              </a>{" "}
-              or create an account.
-            </p>
+            </a>{" "}
+            or create an account.
           </div>
         </div>
       </AppShell>
@@ -46,12 +44,14 @@ export default async function CheckoutPage() {
 
   return (
     <AppShell>
-      <div className="qb-page">
-        <PageHeader title="Checkout" />
+      <div className="mx-auto max-w-7xl space-y-4 px-4 py-5 sm:px-6 sm:py-6">
+        <section className="rounded-xl border border-slate-200 bg-gradient-to-b from-white to-slate-50 p-5 md:p-6">
+          <PageHeader title="Checkout" subtitle="Confirm shipping details and payment method." />
+        </section>
 
         <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
           <div className="md:col-span-2">
-            <div className="qb-card">
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
               <CheckoutClient
                 initialCart={cart}
                 initialAddresses={userAddresses}
@@ -61,23 +61,23 @@ export default async function CheckoutPage() {
           </div>
 
           <aside className="space-y-4">
-            <div className="qb-card">
-              <h3 className="font-medium">Order summary</h3>
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:sticky md:top-24">
+              <h3 className="text-base font-semibold text-slate-900">Order summary</h3>
               {cart ? (
                 <>
-                  <div className="mt-3">
-                    <div className="flex justify-between">
+                  <div className="mt-3 space-y-2 text-sm">
+                    <div className="flex justify-between text-slate-600">
                       <div>Items</div>
-                      <div>{cart.itemCount}</div>
+                      <div className="font-medium text-slate-900">{cart.itemCount}</div>
                     </div>
-                    <div className="mt-2 flex justify-between font-semibold">
+                    <div className="flex justify-between border-t border-slate-200 pt-2 text-base font-semibold text-slate-900">
                       <div>Total</div>
-                      <div>${cart.subTotal}</div>
+                      <div>NGN {Number(cart.subTotal ?? 0).toFixed(2)}</div>
                     </div>
                   </div>
                 </>
               ) : (
-                <div className="mt-3 text-sm text-gray-500">Cart is empty</div>
+                <div className="mt-3 text-sm text-slate-500">Cart is empty</div>
               )}
             </div>
           </aside>

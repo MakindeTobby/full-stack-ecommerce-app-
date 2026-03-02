@@ -1,6 +1,9 @@
 import { eq, inArray, sql } from "drizzle-orm";
 import { cart_items, carts, coupons, product_media } from "@/db/schema";
 import { db } from "@/db/server";
+import { ADDON_DEFINITIONS } from "@/lib/pricing/addons";
+
+const addonLabelMap = new Map(ADDON_DEFINITIONS.map((a) => [a.code, a.label]));
 
 export async function getCartById(cartId: string) {
   const cartRow = (
@@ -15,6 +18,8 @@ export async function getCartById(cartId: string) {
       variant_id: cart_items.variant_id,
       name_snapshot: cart_items.name_snapshot,
       sku: cart_items.sku,
+      addons_json: cart_items.addons_json,
+      addons_total: cart_items.addons_total,
       attributes: sql`(
         SELECT attributes FROM product_variants
         WHERE product_variants.id = cart_items.variant_id
@@ -45,8 +50,18 @@ export async function getCartById(cartId: string) {
       name_snapshot: it.name_snapshot ?? null,
       attributes: it.attributes ?? null,
       sku: it.sku ?? null,
+      addons: Array.isArray(it.addons_json)
+        ? it.addons_json.map((code) => ({
+            code: String(code),
+            label: addonLabelMap.get(String(code)) ?? String(code),
+          }))
+        : [],
+      addons_total: String(it.addons_total ?? "0.00"),
       quantity: Number(it.quantity ?? 0),
       unit_price: String(it.unit_price ?? "0.00"),
+      base_unit_price: (
+        Number(it.unit_price ?? 0) - Number(it.addons_total ?? 0)
+      ).toFixed(2),
       thumbnail: it.thumbnail ?? null,
     };
   });
@@ -121,6 +136,8 @@ export async function getCartSummary(opts: {
       variant_id: cart_items.variant_id,
       name_snapshot: cart_items.name_snapshot,
       sku: cart_items.sku,
+      addons_json: cart_items.addons_json,
+      addons_total: cart_items.addons_total,
       quantity: cart_items.quantity,
       unit_price: cart_items.unit_price,
     })
@@ -163,8 +180,16 @@ export async function getCartSummary(opts: {
       variant_id: it.variant_id ? String(it.variant_id) : null,
       name_snapshot: it.name_snapshot ?? null,
       sku: it.sku ?? null,
+      addons: Array.isArray(it.addons_json)
+        ? it.addons_json.map((code) => ({
+            code: String(code),
+            label: addonLabelMap.get(String(code)) ?? String(code),
+          }))
+        : [],
+      addons_total: String(it.addons_total ?? "0.00"),
       quantity: q,
       unit_price: String(it.unit_price ?? "0.00"),
+      base_unit_price: (up - Number(it.addons_total ?? 0)).toFixed(2),
       thumbnail: thumbnailMap[String(it.product_id)] ?? null,
     };
   });

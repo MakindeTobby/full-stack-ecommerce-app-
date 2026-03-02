@@ -15,6 +15,47 @@ import { verification_tokens } from "@/db/schema";
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID!;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET!;
 
+async function ensureUserByEmail(email: string, name?: string | null) {
+  const normalizedEmail = email.trim().toLowerCase();
+  const displayName = name?.trim() || null;
+
+  const existing = await db
+    .select({
+      id: users.id,
+      email: users.email,
+      name: users.name,
+      role: users.role,
+    })
+    .from(users)
+    .where(eq(users.email, normalizedEmail))
+    .limit(1)
+    .then((r) => r[0] ?? null);
+
+  if (existing) {
+    if (!existing.name && displayName) {
+      await db
+        .update(users)
+        .set({ name: displayName })
+        .where(eq(users.id, existing.id));
+    }
+    return { id: String(existing.id), role: existing.role ?? "customer" };
+  }
+
+  const inserted = await db
+    .insert(users)
+    .values({
+      email: normalizedEmail,
+      name: displayName,
+      role: "customer",
+    })
+    .returning({ id: users.id, role: users.role });
+
+  return {
+    id: String(inserted[0].id),
+    role: inserted[0].role ?? "customer",
+  };
+}
+
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
@@ -108,6 +149,15 @@ export const authOptions: NextAuthOptions = {
   },
 
   callbacks: {
+    async signIn({ user }): Promise<boolean> {
+      const email = user?.email?.toString().trim();
+      if (!email) return false;
+
+      // Enforce DB persistence before considering auth successful.
+      await ensureUserByEmail(email, user?.name ?? null);
+      return true;
+    },
+
     // typed parameters - token is JWT, user is optional (only present on first sign-in)
     async jwt({
       token,
@@ -116,52 +166,21 @@ export const authOptions: NextAuthOptions = {
       token: JWT;
       user?: NextAuthUser | undefined;
     }): Promise<JWT> {
-      if (user) {
-        try {
-          // find existing user by email
-          const found = await db
-            .select()
-            .from(users)
-            .where(eq(users.email, user.email?.toString() ?? ""))
-            .then((r) => r[0]);
-          if (found) {
-            console.log(found, " user found");
-          } else {
-            console.log(" user not found");
-          }
+      if (user?.email) {
+        const dbUser = await ensureUserByEmail(
+          user.email.toString(),
+          user.name ?? null,
+        );
+        (token as JWT & { id?: string }).id = dbUser.id;
+        (token as JWT & { role?: string }).role = dbUser.role;
+        return token;
+      }
 
-          let dbUser: { id: string; role?: string } | undefined;
-          if (!found) {
-            const inserted = await db
-              .insert(users)
-              .values({
-                email: user.email?.toString() ?? "",
-                name: user.name ?? null,
-                role: "customer",
-              })
-              .returning({ id: users.id, role: users.role });
-
-            // inserted[0].id should be a UUID string
-            dbUser = {
-              id: String(inserted[0].id),
-              role: inserted[0].role as string,
-            };
-          } else {
-            dbUser = { id: String(found.id), role: found.role ?? undefined };
-            if (!found.name && user.name) {
-              await db
-                .update(users)
-                .set({ name: user.name })
-                .where(eq(users.id, found.id));
-            }
-          }
-
-          // attach DB fields to JWT (store string UUID)
-          (token as JWT & { id?: string }).id = dbUser.id;
-          (token as JWT & { role?: string }).role = dbUser.role ?? "customer";
-        } catch (e) {
-          console.error("NextAuth upsert user error:", e);
-        }
+      // Fallback for existing sessions where JWT has email but no id/role.
+      if (!token.id && token.email) {
+        const dbUser = await ensureUserByEmail(token.email.toString());
+        (token as JWT & { id?: string }).id = dbUser.id;
+        (token as JWT & { role?: string }).role = dbUser.role;
       }
       return token;
     },

@@ -22,6 +22,7 @@ export const addToCartSchema = z.object({
 
   productId: z.uuid(),
   variantId: z.uuid().optional().nullable(),
+  addons: z.array(z.string().min(1)).optional().default([]),
   quantity: z.preprocess((v) => {
     if (typeof v === "string" && v.trim() !== "") return Number(v);
     return v;

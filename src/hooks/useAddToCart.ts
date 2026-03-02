@@ -14,6 +14,7 @@ export default function useAddToCart() {
   async function add(opts: {
     productId: string;
     variantId?: string | null;
+    addons?: string[];
     quantity?: number;
     userId?: string | null;
     cartId?: string | null;
@@ -26,6 +27,7 @@ export default function useAddToCart() {
         cartId: opts.cartId ?? null,
         productId: opts.productId,
         variantId: opts.variantId ?? null,
+        addons: opts.addons ?? [],
         quantity: opts.quantity ?? 1,
       };
 

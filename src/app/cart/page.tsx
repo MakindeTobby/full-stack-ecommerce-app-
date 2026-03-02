@@ -17,9 +17,14 @@ export default async function CartPage() {
 
   return (
     <AppShell>
-      <div className="qb-page">
-        <PageHeader title="Your Cart" subtitle="Review items before checkout." />
-        <div className="qb-card">
+      <div className="mx-auto max-w-7xl space-y-4 px-4 py-5 sm:px-6 sm:py-6">
+        <section className="rounded-xl border border-slate-200 bg-gradient-to-b from-white to-slate-50 p-5 md:p-6">
+          <PageHeader
+            title="Your Cart"
+            subtitle="Review items, apply coupon, and continue to checkout."
+          />
+        </section>
+        <div>
           <CartClient initialCart={cart} />
         </div>
       </div>

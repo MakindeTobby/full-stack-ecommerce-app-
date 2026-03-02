@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import {
   boolean,
   integer,
+  jsonb,
   numeric,
   pgTable,
   text,
@@ -32,6 +33,13 @@ export const cart_items = pgTable("cart_items", {
   variant_id: uuid("variant_id").references(() => product_variants.id),
   name_snapshot: text("name_snapshot"),
   sku: varchar("sku", { length: 128 }),
+  addons_json: jsonb("addons_json").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+  addons_signature: varchar("addons_signature", { length: 255 })
+    .notNull()
+    .default(""),
+  addons_total: numeric("addons_total", { precision: 12, scale: 2 })
+    .notNull()
+    .default("0"),
   quantity: integer("quantity").notNull().default(1),
   unit_price: numeric("unit_price", { precision: 12, scale: 2 }).notNull(),
   created_at: timestamp("created_at").defaultNow(),
@@ -64,6 +72,13 @@ export const order_items = pgTable("order_items", {
     .notNull(),
   variant_id: uuid("variant_id").references(() => product_variants.id),
   quantity: integer("quantity").notNull(),
+  addons_json: jsonb("addons_json").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+  addons_signature: varchar("addons_signature", { length: 255 })
+    .notNull()
+    .default(""),
+  addons_total: numeric("addons_total", { precision: 12, scale: 2 })
+    .notNull()
+    .default("0"),
   unit_price: numeric("unit_price", { precision: 12, scale: 2 }).notNull(),
   name_snapshot: text("name_snapshot"),
   sku_snapshot: varchar("sku_snapshot", { length: 128 }),

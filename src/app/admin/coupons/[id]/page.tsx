@@ -1,20 +1,42 @@
-import { redirect } from "next/navigation";
+﻿import { redirect } from "next/navigation";
 import {
   deleteCouponById,
   getCouponById,
   setCouponActive,
   updateCouponById,
 } from "@/lib/db/queries/coupons";
+import { isDatabaseUnavailableError } from "@/lib/db/queries/product.shared";
 import { createCouponSchema } from "@/lib/validation/coupon";
+import AdminDbUnavailableNotice from "@/components/admin/AdminDbUnavailableNotice";
 
 type Props = {
   params: Promise<{ id: string }>;
   searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
 };
 
-export default async function CouponDetail({ params }: Props) {
+export default async function CouponDetail({ params, searchParams }: Props) {
   const { id } = await params;
-  const data = await getCouponById(id);
+  const sp = (await searchParams) ?? {};
+  const errorRaw = Array.isArray(sp.error) ? sp.error[0] : sp.error;
+  const error = (errorRaw ?? "").trim();
+
+  let data: Awaited<ReturnType<typeof getCouponById>> = null;
+  let dbUnavailable = false;
+  try {
+    data = await getCouponById(id);
+  } catch (e: unknown) {
+    if (!isDatabaseUnavailableError(e)) throw e;
+    dbUnavailable = true;
+  }
+
+  if (dbUnavailable) {
+    return (
+      <div className="space-y-4">
+        <AdminDbUnavailableNotice message={"Coupon service is temporarily unavailable. Please retry."} retryHref={`/admin/coupons/${id}`} />
+      </div>
+    );
+  }
+
   if (!data) return <div className="admin-panel">Coupon not found</div>;
 
   const { coupon, totalRedemptions, redemptions } = data;
@@ -47,25 +69,46 @@ export default async function CouponDetail({ params }: Props) {
     };
 
     const parsed = createCouponSchema.parse(payload);
-    await updateCouponById(id, parsed as any);
-    redirect(`/admin/coupons/${id}`);
+
+    try {
+      await updateCouponById(id, parsed as any);
+      redirect(`/admin/coupons/${id}`);
+    } catch (e: unknown) {
+      if (!isDatabaseUnavailableError(e)) throw e;
+      redirect(`/admin/coupons/${id}?error=database_unavailable`);
+    }
   }
 
   async function deleteAction() {
     "use server";
-    await deleteCouponById(id);
-    redirect("/admin/coupons");
+    try {
+      await deleteCouponById(id);
+      redirect("/admin/coupons");
+    } catch (e: unknown) {
+      if (!isDatabaseUnavailableError(e)) throw e;
+      redirect(`/admin/coupons/${id}?error=database_unavailable`);
+    }
   }
 
   async function toggleAction(formData: FormData) {
     "use server";
     const active = formData.get("active") === "on";
-    await setCouponActive(id, active);
-    redirect(`/admin/coupons/${id}`);
+
+    try {
+      await setCouponActive(id, active);
+      redirect(`/admin/coupons/${id}`);
+    } catch (e: unknown) {
+      if (!isDatabaseUnavailableError(e)) throw e;
+      redirect(`/admin/coupons/${id}?error=database_unavailable`);
+    }
   }
 
   return (
     <div className="space-y-4">
+      {error ? (
+        <AdminDbUnavailableNotice message={"Could not save coupon due to temporary database issue."} retryHref={`/admin/coupons/${id}`} />
+      ) : null}
+
       <div className="admin-panel flex items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold">Coupon: {coupon.code}</h1>
@@ -246,3 +289,5 @@ export default async function CouponDetail({ params }: Props) {
     </div>
   );
 }
+
+

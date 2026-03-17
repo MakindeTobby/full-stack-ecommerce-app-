@@ -1,4 +1,4 @@
-import Image from "next/image";
+﻿import Image from "next/image";
 import Link from "next/link";
 import AppShell from "@/components/layout/AppShell";
 import SearchBox from "@/components/search/SearchBox";
@@ -17,11 +17,12 @@ export default async function SearchPage({ searchParams }: Props) {
   const q = (qRaw ?? "").trim();
   const page = Math.max(1, Number(pageRaw ?? "1") || 1);
 
-  const { rows, pagination } = await getStoreProductsPage({
+  const { rows, pagination, dbUnavailable } = await getStoreProductsPage({
     page,
     pageSize: 24,
     q: q || undefined,
   });
+
   const currency = new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "NGN",
@@ -42,7 +43,19 @@ export default async function SearchPage({ searchParams }: Props) {
         </div>
         <SearchRecents query={q} />
 
-        {!q ? (
+        {dbUnavailable ? (
+          <div className="qb-card border border-amber-200 bg-amber-50 text-sm text-amber-900">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p>Search is temporarily unavailable. Could not reach catalog service.</p>
+              <Link
+                href={`/search?${new URLSearchParams({ q, page: "1" }).toString()}`}
+                className="rounded border border-amber-300 bg-white px-3 py-1.5 text-xs font-medium hover:bg-amber-100"
+              >
+                Retry
+              </Link>
+            </div>
+          </div>
+        ) : !q ? (
           <div className="qb-card text-sm text-gray-600">
             Enter a search term to see results. Recent searches appear as you
             focus the input.

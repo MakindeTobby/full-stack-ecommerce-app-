@@ -1,8 +1,9 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import {
   getAdminProductsPage,
-  getAllCategories,
+  getAllCategoriesResult,
 } from "@/lib/db/queries/product";
+import AdminDbUnavailableNotice from "@/components/admin/AdminDbUnavailableNotice";
 
 export default async function AdminProductsPage({
   searchParams,
@@ -20,7 +21,7 @@ export default async function AdminProductsPage({
     statusRaw === "published" || statusRaw === "draft" ? statusRaw : "all";
   const page = Math.max(1, Number(pageRaw ?? "1") || 1);
 
-  const [{ rows, pagination }, categories] = await Promise.all([
+  const [productsResult, categoriesResult] = await Promise.all([
     getAdminProductsPage({
       q,
       page,
@@ -28,8 +29,12 @@ export default async function AdminProductsPage({
       categorySlug: category || undefined,
       status,
     }),
-    getAllCategories(),
+    getAllCategoriesResult(),
   ]);
+
+  const { rows, pagination, dbUnavailable: productsUnavailable } = productsResult;
+  const { rows: categories, dbUnavailable: categoriesUnavailable } = categoriesResult;
+  const dbUnavailable = productsUnavailable || categoriesUnavailable;
 
   const buildHref = (nextPage: number) =>
     `/admin/products?${new URLSearchParams({
@@ -41,6 +46,13 @@ export default async function AdminProductsPage({
 
   return (
     <div className="space-y-4">
+      {dbUnavailable ? (
+        <AdminDbUnavailableNotice
+          message="Catalog service is temporarily unavailable. Showing an empty state."
+          retryHref="/admin/products"
+        />
+      ) : null}
+
       <div className="admin-panel flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-xl font-semibold">All products</h2>
@@ -202,3 +214,4 @@ export default async function AdminProductsPage({
     </div>
   );
 }
+

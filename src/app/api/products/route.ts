@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { getStoreProductsPage } from "@/lib/db/queries/product";
 import { parsePaginationParams } from "@/lib/pagination";
 
@@ -28,7 +28,7 @@ export async function GET(req: Request) {
       maxPageSize: 100,
     });
 
-    const { rows, pagination, selectedCategory } = await getStoreProductsPage({
+    const { rows, pagination, selectedCategory, dbUnavailable } = await getStoreProductsPage({
       page,
       pageSize,
       categorySlug: category,
@@ -42,6 +42,7 @@ export async function GET(req: Request) {
       items: rows,
       pagination,
       selectedCategory,
+      dbUnavailable,
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "failed";
@@ -52,3 +53,4 @@ export async function GET(req: Request) {
     );
   }
 }
+

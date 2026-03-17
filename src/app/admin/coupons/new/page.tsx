@@ -1,9 +1,19 @@
-import { redirect } from "next/navigation";
+﻿import { redirect } from "next/navigation";
 import { db } from "@/db/server";
 import { coupons } from "@/db/schema";
+import { isDatabaseUnavailableError } from "@/lib/db/queries/product.shared";
 import { createCouponSchema } from "@/lib/validation/coupon";
+import AdminDbUnavailableNotice from "@/components/admin/AdminDbUnavailableNotice";
 
-export default function NewCouponPage() {
+type Props = {
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
+};
+
+export default async function NewCouponPage({ searchParams }: Props) {
+  const sp = (await searchParams) ?? {};
+  const errorRaw = Array.isArray(sp.error) ? sp.error[0] : sp.error;
+  const error = (errorRaw ?? "").trim();
+
   async function createAction(formData: FormData) {
     "use server";
     const payload = {
@@ -30,27 +40,39 @@ export default function NewCouponPage() {
     };
 
     const parsed = createCouponSchema.parse(payload);
-    await db.insert(coupons).values([
-      {
-        code: parsed.code,
-        description: parsed.description,
-        discount_type: parsed.discount_type,
-        discount_value: String(parsed.discount_value),
-        min_order_amount:
-          parsed.min_order_amount == null ? null : String(parsed.min_order_amount),
-        max_redemptions: parsed.max_redemptions ?? null,
-        per_customer_limit: parsed.per_customer_limit,
-        starts_at: parsed.starts_at ?? null,
-        expires_at: parsed.expires_at ?? null,
-        active: parsed.active,
-      },
-    ]);
 
-    redirect("/admin/coupons");
+    try {
+      await db.insert(coupons).values([
+        {
+          code: parsed.code,
+          description: parsed.description,
+          discount_type: parsed.discount_type,
+          discount_value: String(parsed.discount_value),
+          min_order_amount:
+            parsed.min_order_amount == null
+              ? null
+              : String(parsed.min_order_amount),
+          max_redemptions: parsed.max_redemptions ?? null,
+          per_customer_limit: parsed.per_customer_limit,
+          starts_at: parsed.starts_at ?? null,
+          expires_at: parsed.expires_at ?? null,
+          active: parsed.active,
+        },
+      ]);
+
+      redirect("/admin/coupons");
+    } catch (e: unknown) {
+      if (!isDatabaseUnavailableError(e)) throw e;
+      redirect("/admin/coupons/new?error=database_unavailable");
+    }
   }
 
   return (
     <div className="space-y-4">
+      {error ? (
+        <AdminDbUnavailableNotice message={"Could not create coupon because database is temporarily unavailable."} retryHref="/admin/coupons/new" />
+      ) : null}
+
       <div className="admin-panel">
         <h2 className="text-xl font-semibold">Create coupon</h2>
         <p className="text-sm text-slate-600">
@@ -135,3 +157,4 @@ export default function NewCouponPage() {
     </div>
   );
 }
+

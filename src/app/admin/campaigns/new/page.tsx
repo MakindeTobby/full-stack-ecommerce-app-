@@ -1,8 +1,18 @@
-import { redirect } from "next/navigation";
+﻿import { redirect } from "next/navigation";
 import { createCampaign } from "@/lib/db/queries/campaigns";
+import { isDatabaseUnavailableError } from "@/lib/db/queries/product.shared";
 import { campaignInputSchema } from "@/lib/validation/campaign";
+import AdminDbUnavailableNotice from "@/components/admin/AdminDbUnavailableNotice";
 
-export default function NewCampaignPage() {
+type Props = {
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
+};
+
+export default async function NewCampaignPage({ searchParams }: Props) {
+  const sp = (await searchParams) ?? {};
+  const errorRaw = Array.isArray(sp.error) ? sp.error[0] : sp.error;
+  const error = (errorRaw ?? "").trim();
+
   async function createAction(formData: FormData) {
     "use server";
     const raw = {
@@ -28,12 +38,25 @@ export default function NewCampaignPage() {
     };
 
     const parsed = campaignInputSchema.parse(raw);
-    const id = await createCampaign(parsed);
-    redirect(id ? `/admin/campaigns/${id}` : "/admin/campaigns");
+
+    try {
+      const id = await createCampaign(parsed);
+      redirect(id ? `/admin/campaigns/${id}` : "/admin/campaigns");
+    } catch (e: unknown) {
+      if (!isDatabaseUnavailableError(e)) throw e;
+      redirect("/admin/campaigns/new?error=database_unavailable");
+    }
   }
 
   return (
     <div className="space-y-4">
+      {error ? (
+        <AdminDbUnavailableNotice
+          message="Could not create campaign because database is temporarily unavailable."
+          retryHref="/admin/campaigns/new"
+        />
+      ) : null}
+
       <div className="admin-panel">
         <h1 className="text-xl font-semibold">New campaign</h1>
         <p className="text-sm text-slate-600">
@@ -195,3 +218,4 @@ function Field({
     </div>
   );
 }
+

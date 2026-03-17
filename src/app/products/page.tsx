@@ -1,14 +1,15 @@
-// app/products/page.tsx
+﻿// app/products/page.tsx
 
 import Link from "next/link";
 import AppShell from "@/components/layout/AppShell";
 import MobileFiltersDrawer from "@/components/shop/MobileFiltersDrawer";
 import ProductCard from "@/components/shop/ProductCard";
 import {
-  getStoreCategoriesWithCounts,
+  getStoreCategoriesWithCountsResult,
   getStoreProductsPage,
 } from "@/lib/db/queries/product";
 import { resolveFlashPricesForProducts } from "@/lib/pricing/resolveFlashPrice";
+import ProductCard2 from "@/components/shop/ProductCard2";
 
 type Props = {
   searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -36,7 +37,7 @@ export default async function ProductsPage({ searchParams }: Props) {
 
   const page = Math.max(1, Number(pageRaw ?? "1") || 1);
 
-  const [{ rows, pagination, selectedCategory }, categories] =
+  const [{ rows, pagination, selectedCategory, dbUnavailable: productsUnavailable }, { rows: categories, dbUnavailable: categoriesUnavailable }] =
     await Promise.all([
       getStoreProductsPage({
         page,
@@ -46,7 +47,7 @@ export default async function ProductsPage({ searchParams }: Props) {
         minPrice: minPriceValue,
         maxPrice: maxPriceValue,
       }),
-      getStoreCategoriesWithCounts(),
+      getStoreCategoriesWithCountsResult(),
     ]);
 
   const buildHref = (nextPage: number, nextCategory?: string) =>
@@ -101,6 +102,8 @@ export default async function ProductsPage({ searchParams }: Props) {
     selectedCategory && typeof selectedCategory === "object"
       ? String((selectedCategory as { slug?: unknown }).slug ?? "")
       : undefined;
+
+  const dbUnavailable = productsUnavailable || categoriesUnavailable;
 
   const totalCategoryItems = categories.reduce(
     (acc, c) => acc + Number(c.product_count ?? 0),
@@ -262,6 +265,20 @@ export default async function ProductsPage({ searchParams }: Props) {
           </aside>
 
           <section className="space-y-4">
+            {dbUnavailable ? (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <p>We could not connect to the catalog service right now. Showing an empty state.</p>
+                  <Link
+                    href="/products"
+                    className="rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-medium text-amber-900 transition hover:bg-amber-100"
+                  >
+                    Retry
+                  </Link>
+                </div>
+              </div>
+            ) : null}
+
             <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="text-sm text-slate-600">
@@ -318,7 +335,7 @@ export default async function ProductsPage({ searchParams }: Props) {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-3" id="productGrid">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4  xl:grid-cols-4" id="productGrid">
               {rows.map((r, idx) => {
                 const pid = String(r.id);
                 const fm = flashMap[pid] ?? {
@@ -357,7 +374,7 @@ export default async function ProductsPage({ searchParams }: Props) {
 
 
                 return (
-                  <ProductCard
+                  <ProductCard2
                     key={pid}
                     id={pid}
                     slug={r.slug}
@@ -369,7 +386,22 @@ export default async function ProductsPage({ searchParams }: Props) {
                     flashEndsAt={activeFlash?.ends_at ?? null}
                     isFlash={Boolean(activeFlash)}
                     className={`fade-up ${delayCls}`}
+
+
                   />
+                  // <ProductCard
+                  //   key={pid}
+                  //   id={pid}
+                  //   slug={r.slug}
+                  //   name={r.name_en}
+                  //   categoryName={r.category_name}
+                  //   imageUrl={r.image_url ? String(r.image_url) : null}
+                  //   price={displayPrice}
+                  //   compareAtPrice={activeFlash ? basePrice : null}
+                  //   flashEndsAt={activeFlash?.ends_at ?? null}
+                  //   isFlash={Boolean(activeFlash)}
+                  //   className={`fade-up ${delayCls}`}
+                  // />
                 );
               })}
             </div>
@@ -405,3 +437,4 @@ export default async function ProductsPage({ searchParams }: Props) {
     </AppShell>
   );
 }
+

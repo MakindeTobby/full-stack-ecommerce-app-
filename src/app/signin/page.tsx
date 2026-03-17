@@ -1,13 +1,10 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn, useSession } from "next-auth/react";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import AppShell from "@/components/layout/AppShell";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { PageHeader } from "@/components/ui/page-header";
 
 function isSafeCallbackUrl(value: string | null): value is string {
   if (!value) return false;
@@ -81,51 +78,61 @@ function SignInContent() {
 
   return (
     <AppShell>
-      <div className="qb-page mx-auto max-w-md">
-        <PageHeader
-          title="Sign In"
-          subtitle="Access your orders, saved details, and checkout history."
-        />
+      <div className="mx-auto my-8 grid w-full max-w-xl gap-6 px-4 sm:px-6  lg:gap-8">
 
-        <Card className="space-y-5 p-5">
-          {showError && (
-            <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+
+        <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6 mt-10">
+          <h2 className="text-xl font-semibold text-slate-900">Sign In</h2>
+          <p className="mt-1 text-sm text-slate-600">
+            Choose your preferred sign-in method.
+          </p>
+
+          {showError ? (
+            <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
               {showError}
             </div>
-          )}
+          ) : null}
 
-          <Button
-            onClick={() =>
-              signIn("google", {
-                callbackUrl,
-              })
-            }
-            variant="secondary"
-            className="w-full"
-            disabled={finalizing}
-          >
-            Continue with Google
-          </Button>
+          <div className="mt-5 space-y-3">
+            <button
+              onClick={() =>
+                signIn("google", {
+                  callbackUrl,
+                })
+              }
+              disabled={finalizing}
+              className="flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 text-sm font-medium text-slate-800 transition hover:bg-slate-50 disabled:opacity-60"
+            >
+              Continue with Google
+            </button>
 
-          <div className="flex items-center gap-3">
-            <div className="h-px flex-1 bg-black/10" />
-            <span className="text-xs uppercase tracking-wide text-gray-400">
-              or
-            </span>
-            <div className="h-px flex-1 bg-black/10" />
+            <Link
+              href="/auth/request"
+              className="flex h-11 w-full items-center justify-center rounded-lg bg-violet-600 px-4 text-sm font-semibold text-white transition hover:bg-violet-700"
+            >
+              Continue with Email Magic Link
+            </Link>
           </div>
 
-          <Link
-            href="/auth/request"
-            className="inline-flex h-10 w-full items-center justify-center rounded-md bg-black px-4 text-sm font-medium text-white transition-colors hover:bg-black/85"
-          >
-            Continue with Email Magic Link
-          </Link>
-
-          <p className="text-center text-xs text-gray-500">
+          <div className="mt-4 text-xs text-slate-500">
             By signing in, you agree to our Terms and Privacy Policy.
-          </p>
-        </Card>
+          </div>
+
+          <div className="mt-5 border-t border-slate-100 pt-4">
+            <Link
+              href="/products"
+              className="text-sm font-medium text-slate-700 underline-offset-2 hover:text-violet-700 hover:underline"
+            >
+              Continue as guest
+            </Link>
+          </div>
+
+          {finalizing ? (
+            <div className="mt-4 rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-xs text-violet-700">
+              Finalizing your session...
+            </div>
+          ) : null}
+        </section>
       </div>
     </AppShell>
   );
@@ -134,15 +141,8 @@ function SignInContent() {
 function SignInFallback() {
   return (
     <AppShell>
-      <div className="qb-page mx-auto max-w-md">
-        <PageHeader
-          title="Sign In"
-          subtitle="Access your orders, saved details, and checkout history."
-        />
-        <Card className="space-y-5 p-5">
-          <div className="h-10 animate-pulse rounded-md bg-slate-200" />
-          <div className="h-10 animate-pulse rounded-md bg-slate-200" />
-        </Card>
+      <div className="mx-auto my-8 w-full max-w-3xl px-4 sm:px-6">
+        <div className="h-56 animate-pulse rounded-3xl bg-slate-200" />
       </div>
     </AppShell>
   );

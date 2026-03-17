@@ -1,18 +1,41 @@
-import { redirect } from "next/navigation";
+﻿import { redirect } from "next/navigation";
 import {
   deleteCampaignById,
   getCampaignById,
   updateCampaignById,
 } from "@/lib/db/queries/campaigns";
+import { isDatabaseUnavailableError } from "@/lib/db/queries/product.shared";
 import { campaignInputSchema } from "@/lib/validation/campaign";
+import AdminDbUnavailableNotice from "@/components/admin/AdminDbUnavailableNotice";
 
 type Props = {
   params: Promise<{ id: string }>;
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
 };
 
-export default async function CampaignDetailPage({ params }: Props) {
+export default async function CampaignDetailPage({ params, searchParams }: Props) {
   const { id } = await params;
-  const campaign = await getCampaignById(id);
+  const sp = (await searchParams) ?? {};
+  const errorRaw = Array.isArray(sp.error) ? sp.error[0] : sp.error;
+  const error = (errorRaw ?? "").trim();
+
+  let campaign: Awaited<ReturnType<typeof getCampaignById>> = null;
+  let dbUnavailable = false;
+  try {
+    campaign = await getCampaignById(id);
+  } catch (e: unknown) {
+    if (!isDatabaseUnavailableError(e)) throw e;
+    dbUnavailable = true;
+  }
+
+  if (dbUnavailable) {
+    return (
+      <div className="space-y-4">
+        <AdminDbUnavailableNotice message={"Campaign service is temporarily unavailable. Please retry."} retryHref={`/admin/campaigns/${id}`} />
+      </div>
+    );
+  }
+
   if (!campaign) return <div className="admin-panel">Campaign not found</div>;
 
   async function updateAction(formData: FormData) {
@@ -40,18 +63,33 @@ export default async function CampaignDetailPage({ params }: Props) {
     };
 
     const parsed = campaignInputSchema.parse(raw);
-    await updateCampaignById(id, parsed);
-    redirect(`/admin/campaigns/${id}`);
+
+    try {
+      await updateCampaignById(id, parsed);
+      redirect(`/admin/campaigns/${id}`);
+    } catch (e: unknown) {
+      if (!isDatabaseUnavailableError(e)) throw e;
+      redirect(`/admin/campaigns/${id}?error=database_unavailable`);
+    }
   }
 
   async function deleteAction() {
     "use server";
-    await deleteCampaignById(id);
-    redirect("/admin/campaigns");
+    try {
+      await deleteCampaignById(id);
+      redirect("/admin/campaigns");
+    } catch (e: unknown) {
+      if (!isDatabaseUnavailableError(e)) throw e;
+      redirect(`/admin/campaigns/${id}?error=database_unavailable`);
+    }
   }
 
   return (
     <div className="space-y-4">
+      {error ? (
+        <AdminDbUnavailableNotice message={"Could not save campaign due to temporary database issue."} retryHref={`/admin/campaigns/${id}`} />
+      ) : null}
+
       <div className="admin-panel">
         <h1 className="text-xl font-semibold">Campaign: {campaign.title}</h1>
         <p className="text-sm text-slate-600">
@@ -239,3 +277,5 @@ function Field({
     </div>
   );
 }
+
+

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import ProductCard from "@/components/shop/ProductCard";
 import { mobileViewAllClass, trendSectionClass, trendTitleClass } from "@/styles";
+import ProductCard2 from "../shop/ProductCard2";
 
 interface TrendingProps {
   featured: {
@@ -66,7 +67,7 @@ export default function Trending({ featured, flashMap }: TrendingProps) {
                     : "delay-4";
 
           return (
-            <ProductCard
+            <ProductCard2
               key={pid}
               id={pid}
               slug={r.slug}

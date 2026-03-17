@@ -1,33 +1,73 @@
-import { revalidatePath } from "next/cache";
+﻿import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import {
   createCategory,
   deleteCategory,
   getCategoriesWithCounts,
 } from "@/lib/db/queries/categories";
+import { isDatabaseUnavailableError } from "@/lib/db/queries/product.shared";
+import AdminDbUnavailableNotice from "@/components/admin/AdminDbUnavailableNotice";
 
-export default async function AdminCategoriesPage() {
-  const rows = await getCategoriesWithCounts();
+type Props = {
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
+};
+
+export default async function AdminCategoriesPage({ searchParams }: Props) {
+  const sp = (await searchParams) ?? {};
+  const errorRaw = Array.isArray(sp.error) ? sp.error[0] : sp.error;
+  const error = (errorRaw ?? "").trim();
+
+  let rows: Awaited<ReturnType<typeof getCategoriesWithCounts>> = [];
+  let dbUnavailable = false;
+
+  try {
+    rows = await getCategoriesWithCounts();
+  } catch (e: unknown) {
+    if (!isDatabaseUnavailableError(e)) throw e;
+    dbUnavailable = true;
+  }
 
   async function createAction(formData: FormData) {
     "use server";
     const name = String(formData.get("name") ?? "");
-    await createCategory(name);
-    revalidatePath("/admin/categories");
-    revalidatePath("/products");
+
+    try {
+      await createCategory(name);
+      revalidatePath("/admin/categories");
+      revalidatePath("/products");
+      redirect("/admin/categories");
+    } catch (e: unknown) {
+      if (!isDatabaseUnavailableError(e)) throw e;
+      redirect("/admin/categories?error=database_unavailable");
+    }
   }
 
   async function deleteAction(formData: FormData) {
     "use server";
     const id = String(formData.get("id") ?? "");
     if (!id) return;
-    await deleteCategory(id);
-    revalidatePath("/admin/categories");
-    revalidatePath("/admin/products");
-    revalidatePath("/products");
+
+    try {
+      await deleteCategory(id);
+      revalidatePath("/admin/categories");
+      revalidatePath("/admin/products");
+      revalidatePath("/products");
+      redirect("/admin/categories");
+    } catch (e: unknown) {
+      if (!isDatabaseUnavailableError(e)) throw e;
+      redirect("/admin/categories?error=database_unavailable");
+    }
   }
 
   return (
     <div className="space-y-4">
+      {dbUnavailable || error ? (
+        <AdminDbUnavailableNotice
+          message="Category service is temporarily unavailable. Please retry."
+          retryHref="/admin/categories"
+        />
+      ) : null}
+
       <section className="admin-panel">
         <h2 className="text-xl font-semibold">Categories</h2>
         <p className="text-sm text-slate-600">
@@ -110,3 +150,4 @@ export default async function AdminCategoriesPage() {
     </div>
   );
 }
+

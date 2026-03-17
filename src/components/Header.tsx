@@ -7,6 +7,7 @@ import { classNames } from "@/helpers";
 import HeaderAuth from "./HeaderAuth";
 import HeaderCart from "./HeaderCart";
 import SearchBar from "./search/SearchBar";
+import MobileSearchBar from "./search/MobileSearchBar";
 
 const HeaderPro = () => {
   const [isDark, setIsDark] = useState(false);
@@ -63,8 +64,8 @@ const HeaderPro = () => {
           <Link
             href="/"
             className={`rounded-md px-3 py-1.5 text-sm transition ${pathName === "/"
-                ? "text-violet-700 bg-violet-50"
-                : "text-slate-600 hover:bg-slate-100 font-medium hover:text-slate-900"
+              ? "text-violet-700 bg-violet-50"
+              : "text-slate-600 hover:bg-slate-100 font-medium hover:text-slate-900"
               }`}
             id="nav-home"
           >
@@ -73,8 +74,8 @@ const HeaderPro = () => {
           <Link
             href="/products"
             className={`rounded-md px-3 py-1.5 text-sm transition ${pathName === "/products"
-                ? "text-violet-700 bg-violet-50"
-                : "text-slate-600 hover:bg-slate-100 font-medium hover:text-slate-900"
+              ? "text-violet-700 bg-violet-50"
+              : "text-slate-600 hover:bg-slate-100 font-medium hover:text-slate-900"
               }`}
             id="nav-shop"
           >
@@ -83,8 +84,8 @@ const HeaderPro = () => {
           <Link
             href="/corporate-shoes"
             className={`rounded-md px-3 py-1.5 text-sm transition ${pathName === "/corporate-shoes"
-                ? "text-violet-700 bg-violet-50"
-                : "text-slate-600 hover:bg-slate-100 font-medium hover:text-slate-900"
+              ? "text-violet-700 bg-violet-50"
+              : "text-slate-600 hover:bg-slate-100 font-medium hover:text-slate-900"
               }`}
             id="nav-corporate-shoes"
           >
@@ -93,8 +94,8 @@ const HeaderPro = () => {
           <Link
             href="/cart"
             className={`rounded-md px-3 py-1.5 text-sm transition ${pathName === "/cart"
-                ? "text-violet-700 bg-violet-50"
-                : "text-slate-600 hover:bg-slate-100 font-medium hover:text-slate-900"
+              ? "text-violet-700 bg-violet-50"
+              : "text-slate-600 hover:bg-slate-100 font-medium hover:text-slate-900"
               }`}
             id="nav-newin"
           >
@@ -103,14 +104,14 @@ const HeaderPro = () => {
           <Link
             href="/orders"
             className={`rounded-md px-3 py-1.5 text-sm transition ${pathName === "/orders"
-                ? "text-violet-700 bg-violet-50"
-                : "text-slate-600 hover:bg-slate-100 font-medium hover:text-slate-900"
+              ? "text-violet-700 bg-violet-50"
+              : "text-slate-600 hover:bg-slate-100 font-medium hover:text-slate-900"
               }`}
             id="nav-sale"
           >
             Orders
           </Link>
-          <Link
+          {/* <Link
             href="/about"
             className={`rounded-md px-3 py-1.5 text-sm transition ${pathName === "/about"
                 ? "text-violet-700 bg-violet-50"
@@ -119,7 +120,7 @@ const HeaderPro = () => {
             id="nav-about"
           >
             About
-          </Link>
+          </Link> */}
         </nav>
 
         <SearchBar />
@@ -154,16 +155,11 @@ const HeaderPro = () => {
       </div>
 
       <div
-        className={classNames("border-t px-4 py-2.5 lg:hidden", isDark ? "border-[#1F2937]" : "border-slate-100")}
+        className={classNames("border-t px-2 py-2.5 lg:hidden", isDark ? "border-[#1F2937]" : "border-slate-100")}
         id="mobileSearch"
       >
-        <div
-          className={classNames(
-            "flex items-center gap-2.5 rounded-lg border px-3 py-2 transition focus-within:border-violet-500 focus-within:ring-2 focus-within:ring-violet-500/20",
-            isDark ? "border-[#1F2937] bg-[#111827]" : "border-slate-200 bg-white",
-          )}
-        >
-          {/* <svg className="h-4 w-4 shrink-0 text-slate-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+
+        {/* <svg className="h-4 w-4 shrink-0 text-slate-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
             <circle cx="11" cy="11" r="7" />
             <line x1="16.5" y1="16.5" x2="22" y2="22" />
           </svg>
@@ -176,8 +172,7 @@ const HeaderPro = () => {
               isDark ? "text-slate-100 placeholder:text-slate-500" : "text-slate-800 placeholder:text-slate-400",
             )}
           /> */}
-          <SearchBar />
-        </div>
+        <MobileSearchBar />
       </div>
     </header>
   );

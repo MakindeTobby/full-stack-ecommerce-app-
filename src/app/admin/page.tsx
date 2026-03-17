@@ -1,9 +1,11 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import {
   getAdminAnalyticsSnapshot,
   getAdminRevenueSeries,
   parseAnalyticsRange,
 } from "@/lib/db/queries/analytics";
+import { isDatabaseUnavailableError } from "@/lib/db/queries/product.shared";
+import AdminDbUnavailableNotice from "@/components/admin/AdminDbUnavailableNotice";
 
 export default async function AdminPage({
   searchParams,
@@ -13,10 +15,26 @@ export default async function AdminPage({
   const sp = (await searchParams) ?? {};
   const rangeRaw = Array.isArray(sp.range) ? sp.range[0] : sp.range;
   const range = parseAnalyticsRange(rangeRaw);
-  const [analytics, series] = await Promise.all([
-    getAdminAnalyticsSnapshot(range),
-    getAdminRevenueSeries(range),
-  ]);
+  let analytics;
+  let series;
+
+  try {
+    [analytics, series] = await Promise.all([
+      getAdminAnalyticsSnapshot(range),
+      getAdminRevenueSeries(range),
+    ]);
+  } catch (error: unknown) {
+    if (!isDatabaseUnavailableError(error)) throw error;
+
+    return (
+      <div className="space-y-4">
+        <AdminDbUnavailableNotice
+          message="Could not connect to the analytics database right now. Please retry."
+          retryHref={`/admin?range=${range}`}
+        />
+      </div>
+    );
+  }
   const currency = "NGN";
   const rangeOptions: Array<{ key: string; label: string }> = [
     { key: "7d", label: "7D" },
@@ -445,3 +463,5 @@ function StackedBarList({
     </div>
   );
 }
+
+

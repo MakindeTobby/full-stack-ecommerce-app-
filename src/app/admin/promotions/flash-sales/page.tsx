@@ -1,12 +1,37 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { db } from "@/db/server";
 import { flash_sales } from "@/db/schema";
+import { isDatabaseUnavailableError } from "@/lib/db/queries/product.shared";
+import AdminDbUnavailableNotice from "@/components/admin/AdminDbUnavailableNotice";
 
 export default async function FlashSalesListPage() {
-  const rows = await db.select().from(flash_sales).orderBy(flash_sales.starts_at);
+  let rows: Array<{
+    id: string;
+    title: string;
+    starts_at: Date;
+    ends_at: Date;
+  }> = [];
+  let dbUnavailable = false;
+
+  try {
+    rows = await db.select().from(flash_sales).orderBy(flash_sales.starts_at);
+  } catch (error: unknown) {
+    if (isDatabaseUnavailableError(error)) {
+      dbUnavailable = true;
+    } else {
+      throw error;
+    }
+  }
 
   return (
     <div className="space-y-4">
+      {dbUnavailable ? (
+        <AdminDbUnavailableNotice
+          message="Promotions service is temporarily unavailable. Could not load flash sales."
+          retryHref="/admin/promotions/flash-sales"
+        />
+      ) : null}
+
       <div className="admin-panel flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold">Flash sales</h1>
@@ -52,3 +77,4 @@ export default async function FlashSalesListPage() {
     </div>
   );
 }
+

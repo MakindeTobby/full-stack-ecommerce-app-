@@ -1,11 +1,12 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import AppShell from "@/components/layout/AppShell";
 import ProductCard from "@/components/shop/ProductCard";
 import {
-  getStoreCategoriesWithCounts,
+  getStoreCategoriesWithCountsResult,
   getStoreProductsPage,
 } from "@/lib/db/queries/product";
 import { resolveFlashPricesForProducts } from "@/lib/pricing/resolveFlashPrice";
+import ProductCard2 from "@/components/shop/ProductCard2";
 
 const CATEGORY_SLUG_CANDIDATES = [
   "corporate-shoes",
@@ -23,7 +24,37 @@ export default async function CorporateShoesPage({ searchParams }: Props) {
   const pageRaw = Array.isArray(sp.page) ? sp.page[0] : sp.page;
   const page = Math.max(1, Number(pageRaw ?? "1") || 1);
 
-  const categories = await getStoreCategoriesWithCounts();
+  const { rows: categories, dbUnavailable: categoriesUnavailable } =
+    await getStoreCategoriesWithCountsResult();
+
+  if (categoriesUnavailable) {
+    return (
+      <AppShell>
+        <div className="mx-auto my-8 max-w-7xl px-4 sm:px-6">
+          <section className="rounded-2xl border border-amber-200 bg-amber-50 p-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-700">
+              Service Unavailable
+            </p>
+            <h1 className="mt-2 text-2xl font-semibold text-slate-900">
+              Catalog connection is temporarily unavailable
+            </h1>
+            <p className="mt-2 text-sm text-slate-700">
+              We could not connect to the product service. Please retry in a moment.
+            </p>
+            <div className="mt-4">
+              <Link
+                href="/corporate-shoes"
+                className="inline-flex rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800"
+              >
+                Retry
+              </Link>
+            </div>
+          </section>
+        </div>
+      </AppShell>
+    );
+  }
+
   const availableSlugs = new Set(categories.map((c) => String(c.slug)));
   const resolvedCategorySlug =
     CATEGORY_SLUG_CANDIDATES.find((slug) => availableSlugs.has(slug)) ?? null;
@@ -57,11 +88,44 @@ export default async function CorporateShoesPage({ searchParams }: Props) {
     );
   }
 
-  const { rows, pagination, selectedCategory } = await getStoreProductsPage({
+  const {
+    rows,
+    pagination,
+    selectedCategory,
+    dbUnavailable: productsUnavailable,
+  } = await getStoreProductsPage({
     page,
     pageSize: 24,
     categorySlug: resolvedCategorySlug,
   });
+
+  if (productsUnavailable) {
+    return (
+      <AppShell>
+        <div className="mx-auto my-8 max-w-7xl px-4 sm:px-6">
+          <section className="rounded-2xl border border-amber-200 bg-amber-50 p-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-700">
+              Service Unavailable
+            </p>
+            <h1 className="mt-2 text-2xl font-semibold text-slate-900">
+              Product feed is temporarily unavailable
+            </h1>
+            <p className="mt-2 text-sm text-slate-700">
+              We could not load products from the database. Please retry.
+            </p>
+            <div className="mt-4">
+              <Link
+                href="/corporate-shoes"
+                className="inline-flex rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800"
+              >
+                Retry
+              </Link>
+            </div>
+          </section>
+        </div>
+      </AppShell>
+    );
+  }
 
   const productIds = rows.map((r) => String(r.id));
   const basePriceMap: Record<string, number> = {};
@@ -103,7 +167,7 @@ export default async function CorporateShoesPage({ searchParams }: Props) {
             const activeFlash = fm.activeFlash;
 
             return (
-              <ProductCard
+              <ProductCard2
                 key={pid}
                 id={pid}
                 slug={r.slug}
@@ -126,21 +190,19 @@ export default async function CorporateShoesPage({ searchParams }: Props) {
           <div className="flex items-center gap-2">
             <Link
               href={buildHref(Math.max(1, pagination.page - 1))}
-              className={`rounded-lg border px-3 py-2 ${
-                pagination.hasPrev
+              className={`rounded-lg border px-3 py-2 ${pagination.hasPrev
                   ? "border-slate-200 text-slate-700 hover:bg-slate-50"
                   : "pointer-events-none border-slate-100 text-slate-400"
-              }`}
+                }`}
             >
               Previous
             </Link>
             <Link
               href={buildHref(pagination.page + 1)}
-              className={`rounded-lg border px-3 py-2 ${
-                pagination.hasNext
+              className={`rounded-lg border px-3 py-2 ${pagination.hasNext
                   ? "border-slate-200 text-slate-700 hover:bg-slate-50"
                   : "pointer-events-none border-slate-100 text-slate-400"
-              }`}
+                }`}
             >
               Next
             </Link>

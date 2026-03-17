@@ -1,13 +1,21 @@
-// app/admin/promotions/flash-sales/new/page.tsx
+﻿import { redirect } from "next/navigation";
 import { createFlashSaleTransaction } from "@/lib/db/transactions/flashSales";
+import { isDatabaseUnavailableError } from "@/lib/db/queries/product.shared";
 import { flashSaleSchema } from "@/lib/validation/flash";
-import { redirect } from "next/navigation";
 import FlashSaleForm from "../../components/FlashSaleForm";
+import AdminDbUnavailableNotice from "@/components/admin/AdminDbUnavailableNotice";
 
-export default function NewFlashSalePage() {
+type Props = {
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
+};
+
+export default async function NewFlashSalePage({ searchParams }: Props) {
+  const sp = (await searchParams) ?? {};
+  const errorRaw = Array.isArray(sp.error) ? sp.error[0] : sp.error;
+  const error = (errorRaw ?? "").trim();
+
   async function createAction(formData: FormData) {
     "use server";
-    // parse fields
     const payload = {
       title: String(formData.get("title") ?? ""),
       description: String(formData.get("description") ?? "") || null,
@@ -21,7 +29,6 @@ export default function NewFlashSalePage() {
       products: JSON.parse(String(formData.get("products") ?? "[]")),
     };
 
-    // validation server-side
     flashSaleSchema.parse({
       title: payload.title,
       description: payload.description,
@@ -32,12 +39,21 @@ export default function NewFlashSalePage() {
       priority: payload.priority,
     });
 
-    const res = await createFlashSaleTransaction(payload);
-    redirect(`/admin/promotions/flash-sales/${res.id}`);
+    try {
+      const res = await createFlashSaleTransaction(payload);
+      redirect(`/admin/promotions/flash-sales/${res.id}`);
+    } catch (e: unknown) {
+      if (!isDatabaseUnavailableError(e)) throw e;
+      redirect("/admin/promotions/flash-sales/new?error=database_unavailable");
+    }
   }
 
   return (
     <div className="space-y-4">
+      {error ? (
+        <AdminDbUnavailableNotice message={"Could not create flash sale because database is temporarily unavailable."} retryHref="/admin/promotions/flash-sales/new" />
+      ) : null}
+
       <div className="admin-panel">
         <h1 className="text-xl font-semibold">Create flash sale</h1>
         <p className="text-sm text-slate-600">
@@ -51,3 +67,4 @@ export default function NewFlashSalePage() {
     </div>
   );
 }
+

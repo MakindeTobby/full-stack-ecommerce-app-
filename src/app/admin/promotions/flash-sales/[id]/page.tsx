@@ -1,42 +1,66 @@
-// app/admin/promotions/flash-sales/[id]/page.tsx
+﻿import { eq } from "drizzle-orm";
+import { redirect } from "next/navigation";
 import { db } from "@/db/server";
 import { flash_sales, flash_sale_products, products } from "@/db/schema";
-import { eq } from "drizzle-orm";
-
 import {
-  updateFlashSaleTransaction,
   deleteFlashSale,
+  updateFlashSaleTransaction,
 } from "@/lib/db/transactions/flashSales";
-import { redirect } from "next/navigation";
+import { isDatabaseUnavailableError } from "@/lib/db/queries/product.shared";
 import FlashSaleForm from "../../components/FlashSaleForm";
+import AdminDbUnavailableNotice from "@/components/admin/AdminDbUnavailableNotice";
 
 type Props = {
   params: Promise<{ id: string }>;
   searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
 };
 
-export default async function EditFlashSalePage({ params }: Props) {
+export default async function EditFlashSalePage({ params, searchParams }: Props) {
   const id = (await params).id;
-  const sale = await db
-    .select()
-    .from(flash_sales)
-    .where(eq(flash_sales.id, id))
-    .then((r) => r[0] ?? null);
+  const sp = (await searchParams) ?? {};
+  const errorRaw = Array.isArray(sp.error) ? sp.error[0] : sp.error;
+  const error = (errorRaw ?? "").trim();
 
-  if (!sale) return <div>Not found</div>;
+  let sale: (typeof flash_sales.$inferSelect) | null = null;
+  let attached: Array<{
+    id: string;
+    product_id: string;
+    override_discount_type: string | null;
+    override_discount_value: string | null;
+    product_name: string | null;
+    product_sku: string | null;
+  }> = [];
 
-  const attached = await db
-    .select({
-      id: flash_sale_products.id,
-      product_id: flash_sale_products.product_id,
-      override_discount_type: flash_sale_products.override_discount_type,
-      override_discount_value: flash_sale_products.override_discount_value,
-      product_name: products.name_en,
-      product_sku: products.sku,
-    })
-    .from(flash_sale_products)
-    .leftJoin(products, eq(flash_sale_products.product_id, products.id))
-    .where(eq(flash_sale_products.flash_sale_id, id));
+  try {
+    sale = await db
+      .select()
+      .from(flash_sales)
+      .where(eq(flash_sales.id, id))
+      .then((r) => r[0] ?? null);
+
+    if (!sale) return <div>Not found</div>;
+
+    attached = await db
+      .select({
+        id: flash_sale_products.id,
+        product_id: flash_sale_products.product_id,
+        override_discount_type: flash_sale_products.override_discount_type,
+        override_discount_value: flash_sale_products.override_discount_value,
+        product_name: products.name_en,
+        product_sku: products.sku,
+      })
+      .from(flash_sale_products)
+      .leftJoin(products, eq(flash_sale_products.product_id, products.id))
+      .where(eq(flash_sale_products.flash_sale_id, id));
+  } catch (e: unknown) {
+    if (!isDatabaseUnavailableError(e)) throw e;
+    return (
+      <div className="space-y-4">
+        <AdminDbUnavailableNotice message={"Flash sale service is temporarily unavailable. Please retry."} retryHref={`/admin/promotions/flash-sales/${id}`} />
+      </div>
+    );
+  }
+
   async function updateAction(formData: FormData) {
     "use server";
     const payload = {
@@ -52,14 +76,24 @@ export default async function EditFlashSalePage({ params }: Props) {
       products: JSON.parse(String(formData.get("products") ?? "[]")),
     };
 
-    await updateFlashSaleTransaction(id, payload);
-    redirect(`/admin/promotions/flash-sales/${id}`);
+    try {
+      await updateFlashSaleTransaction(id, payload);
+      redirect(`/admin/promotions/flash-sales/${id}`);
+    } catch (e: unknown) {
+      if (!isDatabaseUnavailableError(e)) throw e;
+      redirect(`/admin/promotions/flash-sales/${id}?error=database_unavailable`);
+    }
   }
 
   async function deleteAction() {
     "use server";
-    await deleteFlashSale(id);
-    redirect("/admin/promotions/flash-sales");
+    try {
+      await deleteFlashSale(id);
+      redirect("/admin/promotions/flash-sales");
+    } catch (e: unknown) {
+      if (!isDatabaseUnavailableError(e)) throw e;
+      redirect(`/admin/promotions/flash-sales/${id}?error=database_unavailable`);
+    }
   }
 
   const initial: any = {
@@ -80,6 +114,10 @@ export default async function EditFlashSalePage({ params }: Props) {
 
   return (
     <div className="space-y-4">
+      {error ? (
+        <AdminDbUnavailableNotice message={"Could not save flash sale due to temporary database issue."} retryHref={`/admin/promotions/flash-sales/${id}`} />
+      ) : null}
+
       <div className="admin-panel flex items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold">Edit flash sale</h1>
@@ -93,17 +131,11 @@ export default async function EditFlashSalePage({ params }: Props) {
           </button>
         </form>
       </div>
-
-      {/* <FlashSaleForm
-        initial={initial}
-        onSubmitAction={async (fd: FormData) => {
-          await updateAction(fd);
-          return true;
-        }}
-      /> */}
       <div className="admin-panel">
         <FlashSaleForm initial={initial} onSubmitAction={updateAction} />
       </div>
     </div>
   );
 }
+
+

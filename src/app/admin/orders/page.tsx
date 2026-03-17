@@ -1,5 +1,6 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { getAdminOrdersPage } from "@/lib/db/queries/orders";
+import AdminDbUnavailableNotice from "@/components/admin/AdminDbUnavailableNotice";
 
 type Props = {
   searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -9,13 +10,20 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
   const sp = (await searchParams) ?? {};
   const pageRaw = Array.isArray(sp.page) ? sp.page[0] : sp.page;
   const page = Math.max(1, Number(pageRaw ?? "1") || 1);
-  const { rows, pagination } = await getAdminOrdersPage({
+  const { rows, pagination, dbUnavailable } = await getAdminOrdersPage({
     page,
     pageSize: 50,
   });
 
   return (
     <div className="space-y-4">
+      {dbUnavailable ? (
+        <AdminDbUnavailableNotice
+          message="Order service is temporarily unavailable. Could not connect to database."
+          retryHref="/admin/orders"
+        />
+      ) : null}
+
       <div className="admin-panel">
         <h1 className="text-xl font-semibold">Orders</h1>
         <p className="text-sm text-slate-600">
@@ -128,3 +136,4 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
     </div>
   );
 }
+

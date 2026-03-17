@@ -1,13 +1,27 @@
-import { redirect } from "next/navigation";
+﻿import { redirect } from "next/navigation";
 import { db } from "@/db/server";
 import { products } from "@/db/schema";
 import { createProductSchema } from "@/lib/validation/product";
-import { generateUniqueSlug, getAllCategories } from "@/lib/db/queries/product";
+import {
+  generateUniqueSlug,
+  getAllCategoriesResult,
+} from "@/lib/db/queries/product";
+import { isDatabaseUnavailableError } from "@/lib/db/queries/product.shared";
 import { slugify } from "@/lib/slugify";
 import DescriptionEditor from "../components/DescriptionEditor";
+import AdminDbUnavailableNotice from "@/components/admin/AdminDbUnavailableNotice";
 
-export default async function NewProductPage() {
-  const categories = await getAllCategories();
+type Props = {
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
+};
+
+export default async function NewProductPage({ searchParams }: Props) {
+  const sp = (await searchParams) ?? {};
+  const errorRaw = Array.isArray(sp.error) ? sp.error[0] : sp.error;
+  const error = (errorRaw ?? "").trim();
+
+  const categoriesResult = await getAllCategoriesResult();
+  const categories = categoriesResult.rows;
 
   async function createAction(formData: FormData) {
     "use server";
@@ -20,44 +34,53 @@ export default async function NewProductPage() {
     const sku = String(formData.get("sku") ?? "") || null;
     const published = formData.get("published") === "on";
 
-    const baseSlug = slugify(name_en);
-    const uniqueSlug = await generateUniqueSlug(baseSlug);
+    try {
+      const baseSlug = slugify(name_en);
+      const uniqueSlug = await generateUniqueSlug(baseSlug);
 
-    const parsed = createProductSchema.parse({
-      slug: uniqueSlug,
-      category_id,
-      name_en,
-      description,
-      base_price,
-      sku,
-      published,
-      images: [],
-      variants: [],
-      bulk_pricing: [],
-      tags: [],
-    });
+      const parsed = createProductSchema.parse({
+        slug: uniqueSlug,
+        category_id,
+        name_en,
+        description,
+        base_price,
+        sku,
+        published,
+        images: [],
+        variants: [],
+        bulk_pricing: [],
+        tags: [],
+      });
 
-    const inserted = await db
-      .insert(products)
-      .values({
-        slug: parsed.slug,
-        category_id: parsed.category_id ?? null,
-        name_en: parsed.name_en,
-        description: parsed.description ?? null,
-        base_price: parsed.base_price,
-        sku: parsed.sku ?? null,
-        published: parsed.published ?? false,
-      })
-      .returning({ id: products.id });
+      const inserted = await db
+        .insert(products)
+        .values({
+          slug: parsed.slug,
+          category_id: parsed.category_id ?? null,
+          name_en: parsed.name_en,
+          description: parsed.description ?? null,
+          base_price: parsed.base_price,
+          sku: parsed.sku ?? null,
+          published: parsed.published ?? false,
+        })
+        .returning({ id: products.id });
 
-    const productId = inserted.at(0)?.id;
-    if (!productId) throw new Error("Product create failed");
-    redirect(`/admin/products/${productId}`);
+      const productId = inserted.at(0)?.id;
+      if (!productId) throw new Error("Product create failed");
+      redirect(`/admin/products/${productId}`);
+    } catch (e: unknown) {
+      if (!isDatabaseUnavailableError(e)) throw e;
+      redirect("/admin/products/new?error=database_unavailable");
+    }
   }
 
   return (
     <div className="grid gap-4 lg:grid-cols-3">
       <div className="space-y-4 lg:col-span-2">
+        {categoriesResult.dbUnavailable || error ? (
+          <AdminDbUnavailableNotice message={"Product service is temporarily unavailable. Please retry."} retryHref="/admin/products/new" />
+        ) : null}
+
         <div className="admin-panel">
           <h2 className="text-xl font-semibold">New product</h2>
           <p className="text-sm text-slate-600">
@@ -175,3 +198,4 @@ export default async function NewProductPage() {
     </div>
   );
 }
+

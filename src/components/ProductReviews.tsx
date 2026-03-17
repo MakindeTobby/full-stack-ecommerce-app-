@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import useSWR from "swr";
@@ -56,6 +56,8 @@ export default function ProductReviews({
     >,
   };
 
+  const showReviewComposer = Boolean(userId) && (canReview || Boolean(mine));
+
   const [rating, setRating] = useState<number>(mine?.rating ?? 5);
   const [title, setTitle] = useState<string>(mine?.title ?? "");
   const [body, setBody] = useState<string>(mine?.body ?? "");
@@ -63,8 +65,8 @@ export default function ProductReviews({
   const [msg, setMsg] = useState<string>("");
 
   async function submitReview() {
-    if (!userId) {
-      setMsg("Sign in to submit a review.");
+    if (!userId || !showReviewComposer) {
+      setMsg("You can review this product after a delivered purchase.");
       return;
     }
     if (rating < 1 || rating > 5) {
@@ -129,72 +131,65 @@ export default function ProductReviews({
         })}
       </div>
 
-      <div className="mt-5 rounded-lg border border-slate-200 p-4">
-        <h4 className="text-sm font-semibold text-slate-900">
-          {mine ? "Update your review" : "Write a review"}
-        </h4>
-        {!userId && (
-          <p className="mt-1 text-xs text-slate-500">Sign in to review.</p>
-        )}
-        {userId && !canReview && !mine && (
-          <p className="mt-1 text-xs text-slate-500">
-            You can review this product after it is delivered in one of your
-            orders.
-          </p>
-        )}
-        {mine && (
-          <p className="mt-1 text-xs text-slate-500">
-            Current status: <span className="font-medium">{mine.status}</span>
-          </p>
-        )}
+      {showReviewComposer ? (
+        <div className="mt-5 rounded-lg border border-slate-200 p-4">
+          <h4 className="text-sm font-semibold text-slate-900">
+            {mine ? "Update your review" : "Write a review"}
+          </h4>
+          {mine ? (
+            <p className="mt-1 text-xs text-slate-500">
+              Current status: <span className="font-medium">{mine.status}</span>
+            </p>
+          ) : null}
 
-        <div className="mt-3 grid gap-3">
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-slate-700">Rating</span>
-            <select
-              value={rating}
-              onChange={(e) => setRating(Number(e.target.value))}
-              className="rounded border border-slate-300 px-2 py-1 text-sm"
-              disabled={submitting || (!canReview && !mine)}
-            >
-              {[5, 4, 3, 2, 1].map((n) => (
-                <option key={n} value={n}>
-                  {n}
-                </option>
-              ))}
-            </select>
-          </div>
-          <input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Review title"
-            className="rounded border border-slate-300 px-3 py-2 text-sm"
-            disabled={submitting || (!canReview && !mine)}
-          />
-          <textarea
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            placeholder="Share your experience"
-            className="min-h-24 rounded border border-slate-300 px-3 py-2 text-sm"
-            disabled={submitting || (!canReview && !mine)}
-          />
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={submitReview}
-              disabled={submitting || (!canReview && !mine)}
-              className="rounded bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-            >
-              {submitting
-                ? "Submitting..."
-                : mine
-                  ? "Update review"
-                  : "Submit review"}
-            </button>
-            {msg && <span className="text-xs text-slate-600">{msg}</span>}
+          <div className="mt-3 grid gap-3">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-slate-700">Rating</span>
+              <select
+                value={rating}
+                onChange={(e) => setRating(Number(e.target.value))}
+                className="rounded border border-slate-300 px-2 py-1 text-sm"
+                disabled={submitting}
+              >
+                {[5, 4, 3, 2, 1].map((n) => (
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Review title"
+              className="rounded border border-slate-300 px-3 py-2 text-sm"
+              disabled={submitting}
+            />
+            <textarea
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              placeholder="Share your experience"
+              className="min-h-24 rounded border border-slate-300 px-3 py-2 text-sm"
+              disabled={submitting}
+            />
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={submitReview}
+                disabled={submitting}
+                className="rounded bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+              >
+                {submitting
+                  ? "Submitting..."
+                  : mine
+                    ? "Update review"
+                    : "Submit review"}
+              </button>
+              {msg && <span className="text-xs text-slate-600">{msg}</span>}
+            </div>
           </div>
         </div>
-      </div>
+      ) : null}
 
       <div className="mt-5 space-y-3">
         {isLoading && (

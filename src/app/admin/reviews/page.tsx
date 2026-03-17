@@ -1,9 +1,11 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
   getPendingReviewsPage,
   setReviewModerationStatus,
 } from "@/lib/db/queries/reviews";
+import { isDatabaseUnavailableError } from "@/lib/db/queries/product.shared";
+import AdminDbUnavailableNotice from "@/components/admin/AdminDbUnavailableNotice";
 
 type Props = {
   searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -12,30 +14,70 @@ type Props = {
 export default async function AdminReviewsPage({ searchParams }: Props) {
   const sp = (await searchParams) ?? {};
   const pageRaw = Array.isArray(sp.page) ? sp.page[0] : sp.page;
+  const errorRaw = Array.isArray(sp.error) ? sp.error[0] : sp.error;
+  const error = (errorRaw ?? "").trim();
   const page = Math.max(1, Number(pageRaw ?? "1") || 1);
-  const { rows, pagination } = await getPendingReviewsPage({
-    page,
+
+  let rows: Awaited<ReturnType<typeof getPendingReviewsPage>>["rows"] = [];
+  let pagination: Awaited<ReturnType<typeof getPendingReviewsPage>>["pagination"] = {
+    page: 1,
     pageSize: 20,
-  });
+    total: 0,
+    totalPages: 1,
+    hasPrev: false,
+    hasNext: false,
+  };
+  let dbUnavailable = false;
+
+  try {
+    const data = await getPendingReviewsPage({
+      page,
+      pageSize: 20,
+    });
+    rows = data.rows;
+    pagination = data.pagination;
+  } catch (e: unknown) {
+    if (!isDatabaseUnavailableError(e)) throw e;
+    dbUnavailable = true;
+  }
 
   async function approveAction(formData: FormData) {
     "use server";
     const reviewId = String(formData.get("reviewId") ?? "").trim();
     if (!reviewId) return;
-    await setReviewModerationStatus({ reviewId, status: "approved" });
-    redirect(`/admin/reviews?page=${page}`);
+
+    try {
+      await setReviewModerationStatus({ reviewId, status: "approved" });
+      redirect(`/admin/reviews?page=${page}`);
+    } catch (e: unknown) {
+      if (!isDatabaseUnavailableError(e)) throw e;
+      redirect(`/admin/reviews?page=${page}&error=database_unavailable`);
+    }
   }
 
   async function rejectAction(formData: FormData) {
     "use server";
     const reviewId = String(formData.get("reviewId") ?? "").trim();
     if (!reviewId) return;
-    await setReviewModerationStatus({ reviewId, status: "rejected" });
-    redirect(`/admin/reviews?page=${page}`);
+
+    try {
+      await setReviewModerationStatus({ reviewId, status: "rejected" });
+      redirect(`/admin/reviews?page=${page}`);
+    } catch (e: unknown) {
+      if (!isDatabaseUnavailableError(e)) throw e;
+      redirect(`/admin/reviews?page=${page}&error=database_unavailable`);
+    }
   }
 
   return (
     <div className="space-y-4">
+      {dbUnavailable || error ? (
+        <AdminDbUnavailableNotice
+          message="Review moderation service is temporarily unavailable. Please retry."
+          retryHref="/admin/reviews"
+        />
+      ) : null}
+
       <div className="admin-panel">
         <h1 className="text-xl font-semibold">Review moderation</h1>
         <p className="text-sm text-slate-600">
@@ -178,3 +220,4 @@ export default async function AdminReviewsPage({ searchParams }: Props) {
     </div>
   );
 }
+

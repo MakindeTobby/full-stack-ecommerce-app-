@@ -1,4 +1,4 @@
-import { eq, like } from "drizzle-orm";
+﻿import { eq, like } from "drizzle-orm";
 import { products } from "@/db/schema";
 import { db } from "@/db/server";
 
@@ -22,6 +22,21 @@ export function isMissingCategorySchema(error: unknown) {
   return (
     lower.includes('relation "categories" does not exist') ||
     lower.includes('column "products.category_id" does not exist')
+  );
+}
+
+export function isDatabaseUnavailableError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error ?? "");
+  const lower = message.toLowerCase();
+
+  return (
+    lower.includes("econnreset") ||
+    lower.includes("connection terminated") ||
+    lower.includes("connection closed") ||
+    lower.includes("connect_timeout") ||
+    lower.includes("timeout") ||
+    lower.includes("could not connect") ||
+    lower.includes("failed query")
   );
 }
 

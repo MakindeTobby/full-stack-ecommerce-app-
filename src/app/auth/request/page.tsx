@@ -1,12 +1,8 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useState } from "react";
 import AppShell from "@/components/layout/AppShell";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { PageHeader } from "@/components/ui/page-header";
 
 type SendState = "idle" | "sending" | "sent" | "error";
 
@@ -51,22 +47,25 @@ export default function RequestMagicLink() {
 
   return (
     <AppShell>
-      <div className="qb-page mx-auto max-w-md">
-        <PageHeader
-          title="Email Sign-In"
-          subtitle="Enter your email and we will send a secure one-time sign-in link."
-        />
+      <div className="mx-auto my-8 w-full max-w-xl px-4 sm:px-6">
+        <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-violet-600">
+            Magic Link
+          </p>
+          <h1 className="mt-2 text-2xl font-semibold text-slate-900">Email Sign-In</h1>
+          <p className="mt-1 text-sm text-slate-600">
+            Enter your email and we will send a secure one-time sign-in link.
+          </p>
 
-        <Card className="space-y-4 p-5">
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="mt-5 space-y-4">
             <div className="space-y-1">
               <label
                 htmlFor="auth-email"
-                className="text-sm font-medium text-gray-700"
+                className="text-sm font-medium text-slate-700"
               >
                 Email address
               </label>
-              <Input
+              <input
                 id="auth-email"
                 type="email"
                 required
@@ -74,39 +73,40 @@ export default function RequestMagicLink() {
                 placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                className="h-11 w-full rounded-lg border border-slate-300 px-3 text-sm outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20"
               />
             </div>
 
-            <Button
+            <button
               type="submit"
-              variant="primary"
-              className="w-full"
               disabled={status === "sending"}
+              className="h-11 w-full rounded-lg bg-violet-600 px-4 text-sm font-semibold text-white transition hover:bg-violet-700 disabled:opacity-70"
             >
               {status === "sending" ? "Sending link..." : "Send Magic Link"}
-            </Button>
+            </button>
           </form>
 
-          {status === "sent" && message && (
-            <p className="rounded-md border border-green-200 bg-green-50 p-3 text-sm text-green-700">
+          {status === "sent" && message ? (
+            <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
               {message}
-            </p>
-          )}
+            </div>
+          ) : null}
 
-          {status === "error" && message && (
-            <p className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          {status === "error" && message ? (
+            <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
               {message}
-            </p>
-          )}
+            </div>
+          ) : null}
 
-          <p className="text-xs text-gray-500">
-            Already have an active session?{" "}
-            <Link href="/signin" className="underline">
-              Go back to sign in
+          <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4 text-sm">
+            <Link href="/signin" className="text-slate-600 hover:text-violet-700">
+              Back to sign in
             </Link>
-            .
-          </p>
-        </Card>
+            <Link href="/products" className="text-slate-600 hover:text-violet-700">
+              Continue as guest
+            </Link>
+          </div>
+        </section>
       </div>
     </AppShell>
   );

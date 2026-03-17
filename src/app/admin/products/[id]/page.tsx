@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+﻿import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { db } from "@/db/server";
 import { product_media, product_variants, products } from "@/db/schema";
@@ -9,6 +9,7 @@ import MediaItem from "../../../../components/MediaItem";
 import DescriptionEditor from "../components/DescriptionEditor";
 import SaveButtonClient from "../components/SaveButtonClient";
 import VariantsEditor from "../components/VariantsEditor";
+import { isDatabaseUnavailableError } from "@/lib/db/queries/product.shared";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -18,22 +19,56 @@ type Props = {
 export default async function EditProductPage({ params }: Props) {
   const id = (await params).id;
 
-  const row = (await db.select().from(products).where(eq(products.id, id))).at(
-    0,
-  );
-  if (!row) return <div className="admin-panel">Product not found.</div>;
-  const categories = await getAllCategories();
+  let row:
+    | (typeof products.$inferSelect)
+    | undefined;
+  let categories: Array<{ id: string; name: string; slug: string }> = [];
+  let medias: Array<typeof product_media.$inferSelect> = [];
+  let existingVariants: Array<typeof product_variants.$inferSelect> = [];
 
-  const medias = await db
-    .select()
-    .from(product_media)
-    .where(eq(product_media.product_id, id))
-    .orderBy(product_media.position);
+  try {
+    row = (await db.select().from(products).where(eq(products.id, id))).at(0);
+    if (!row) return <div className="admin-panel">Product not found.</div>;
 
-  const existingVariants = await db
-    .select()
-    .from(product_variants)
-    .where(eq(product_variants.product_id, id));
+    categories = await getAllCategories();
+
+    medias = await db
+      .select()
+      .from(product_media)
+      .where(eq(product_media.product_id, id))
+      .orderBy(product_media.position);
+
+    existingVariants = await db
+      .select()
+      .from(product_variants)
+      .where(eq(product_variants.product_id, id));
+  } catch (error: unknown) {
+    if (!isDatabaseUnavailableError(error)) throw error;
+    return (
+      <div className="space-y-4">
+        <section className="admin-panel border border-amber-200 bg-amber-50 text-amber-900">
+          <h1 className="text-xl font-semibold">Product editor unavailable</h1>
+          <p className="mt-1 text-sm">
+            Could not connect to the database to load this product. Please retry.
+          </p>
+          <div className="mt-3 flex items-center gap-2">
+            <a
+              href={`/admin/products/${id}`}
+              className="inline-flex items-center rounded-md border border-amber-300 bg-white px-3 py-1.5 text-xs font-medium hover:bg-amber-100"
+            >
+              Retry
+            </a>
+            <a
+              href="/admin/products"
+              className="inline-flex items-center rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+            >
+              Back to products
+            </a>
+          </div>
+        </section>
+      </div>
+    );
+  }
 
   async function deleteAction() {
     "use server";
@@ -223,3 +258,4 @@ export default async function EditProductPage({ params }: Props) {
     </div>
   );
 }
+

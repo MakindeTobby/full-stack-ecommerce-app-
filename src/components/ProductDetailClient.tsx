@@ -389,7 +389,7 @@ export default function ProductDetailClient({
         </div>
       </div>
 
-      {medias.length > 0 && (
+      {/* {medias.length > 0 && (
         <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
           {medias.map((m, idx) => (
             <button
@@ -410,7 +410,7 @@ export default function ProductDetailClient({
             </button>
           ))}
         </div>
-      )}
+      )} */}
 
       {groups.map((g) => (
         <div key={g.name} className="space-y-2">
@@ -426,8 +426,8 @@ export default function ProductDetailClient({
                 key={val}
                 onClick={() => setSelected((s) => ({ ...s, [g.name]: val }))}
                 className={`rounded-lg border px-3 py-2 text-sm font-medium transition sm:px-3.5 ${selected[g.name] === val
-                    ? "border-violet-600 bg-violet-600 text-white shadow-sm"
-                    : "border-slate-200 bg-white text-slate-700 hover:border-violet-400 hover:text-violet-700"
+                  ? "border-violet-600 bg-violet-600 text-white shadow-sm"
+                  : "border-slate-200 bg-white text-slate-700 hover:border-violet-400 hover:text-violet-700"
                   }`}
                 type="button"
               >
@@ -457,8 +457,8 @@ export default function ProductDetailClient({
                   )
                 }
                 className={`rounded-lg border px-3 py-2 text-sm font-medium transition sm:px-3.5 ${checked
-                    ? "border-violet-600 bg-violet-600 text-white shadow-sm"
-                    : "border-slate-200 bg-white text-slate-700 hover:border-violet-400 hover:text-violet-700"
+                  ? "border-violet-600 bg-violet-600 text-white shadow-sm"
+                  : "border-slate-200 bg-white text-slate-700 hover:border-violet-400 hover:text-violet-700"
                   }`}
               >
                 {addon.label} (+{currency.format(addon.price)})
